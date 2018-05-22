@@ -1,2 +1,3 @@
 from local_shape_descriptor import LsdExtractor
+from agglomerate import LsdAgglomeration
 import gp
