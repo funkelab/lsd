@@ -176,4 +176,7 @@ class LsdAgglomeration:
         offset = tuple(s.start for s in slices)
         shape = tuple(s.stop - s.start for s in slices)
 
-        return gp.Roi(offset, shape)
+        roi = gp.Roi(offset, shape)
+        roi = roi.snap_to_grid((self.lsd_extractor.downsample,)*roi.dims())
+
+        return roi
