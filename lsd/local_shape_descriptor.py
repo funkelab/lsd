@@ -142,9 +142,14 @@ class LsdExtractor:
 
         # get sub-sampled shape, roi, voxel size and sigma
         df = self.downsample
-        logger.debug("Downsampling segmentation with factor %f", df)
+        logger.debug(
+            "Downsampling segmentation %s with factor %f",
+            segmentation.shape, df)
         sub_shape = tuple(s/df for s in segmentation.shape)
         sub_roi = roi/df
+        assert sub_roi*df == roi, (
+            "Segmentation shape %s is not a multiple of downsampling factor "
+            "%d."%(segmentation.shape, self.downsample))
         sub_voxel_size = tuple(v*df for v in voxel_size)
         sub_sigma_voxel = tuple(s/v for s, v in zip(self.sigma, sub_voxel_size))
         logger.debug("Downsampled shape: %s", sub_shape)
@@ -175,7 +180,9 @@ class LsdExtractor:
             logger.debug("Creating shape descriptors for label %d", label)
 
             mask = (segmentation==label).astype(np.float32)
+            logger.debug("Label mask %s", mask.shape)
             sub_mask = mask[::df, ::df, ::df]
+            logger.debug("Downsampled label mask %s", sub_mask.shape)
 
             sub_count, sub_mean_offset, sub_variance, sub_pearson = self.__get_stats(
                 coords,
