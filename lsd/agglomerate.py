@@ -162,7 +162,8 @@ class LsdAgglomeration:
         # get LSDs for u(+v)
         lsds = self.lsd_extractor.get_descriptors(
             roi_slice,
-            labels=[v])
+            labels=[v],
+            voxel_size=self.voxel_size)
 
         # subtract from target LSDs
         diff = self.target_lsds[(slice(None),) + roi.get_bounding_box()] - lsds
