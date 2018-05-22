@@ -126,9 +126,11 @@ class LsdExtractor:
 
         if voxel_size is None:
             voxel_size = gp.Coordinate((1,)*dims)
+        else:
+            voxel_size = gp.Coordinate(voxel_size)
 
         if roi is None:
-            roi = gp.Roi((0,)*dims, voxel_size*segmentation.shape)
+            roi = gp.Roi((0,)*dims, segmentation.shape)
 
         roi_slices = roi.get_bounding_box()
 
