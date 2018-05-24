@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     lsd_extractor = lsd.LsdExtractor(
         sigma=(80.0, 80.0, 80.0),
-        downsample=1)
+        downsample=2)
     voxel_size = (8, 8, 8)
 
     with h5py.File('test_real.hdf', 'w') as f:
