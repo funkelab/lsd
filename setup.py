@@ -30,7 +30,7 @@ setup(
         license='MIT',
         packages=[
             'lsd',
-            'lsd.gunpowder',
+            'lsd.gp',
         ],
         install_requires=[
             "numpy",
