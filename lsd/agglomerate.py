@@ -1,5 +1,6 @@
 from scipy.ndimage.measurements import find_objects
-from skimage.future.graph import RAG, merge_hierarchical
+from skimage.future.graph import RAG
+from graph_merge import merge_hierarchical
 import gunpowder as gp
 import numpy as np
 import logging
@@ -58,7 +59,7 @@ class LsdAgglomeration:
 
         self.__initialize_rag()
 
-    def merge_until(self, threshold):
+    def merge_until(self, threshold, max_merges=-1):
         '''Merge until the given threshold. Since edges are scored by how much
         they decrease the distance to ``target_lsds``, a threshold of 0 should
         be optimal.'''
@@ -67,16 +68,20 @@ class LsdAgglomeration:
 
         merge_func = lambda _, src, dst: self.__update_lsds(src, dst)
         weight_func = lambda _g, _s, u, v: self.__score_merge(u, v)
-        merge_hierarchical(
+        num_merges = merge_hierarchical(
             self.fragments,
             self.rag,
             thresh=threshold,
             rag_copy=False,
             in_place_merge=True,
             merge_func=merge_func,
-            weight_func=weight_func)
+            weight_func=weight_func,
+            max_merges=max_merges,
+            return_segmenation=False)
 
         logger.info("Finished merging")
+
+        return num_merges
 
     def get_segmentation(self):
         '''Return the segmentation obtained so far by calls to
