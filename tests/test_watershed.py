@@ -13,7 +13,7 @@ if __name__ == "__main__":
     centers = lsds[0:3] - 0.5
     fragments, distances, seeds = lsd.fragments.watershed(
         centers,
-        1.0,
+        sigma=1.0,
         return_distances=True,
         return_seeds=True)
 
