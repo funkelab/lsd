@@ -9,6 +9,10 @@ logging.basicConfig(level=logging.INFO)
 
 size = (1, 100, 100)
 
+# factor of pixel-wise uniformly sampled noise (in [-0.5, 0.5]) to add to
+# "prediction" LSDs
+noise_factor = 0
+
 def create_random_segmentation(seed):
 
     np.random.seed(seed)
@@ -28,11 +32,16 @@ if __name__ == "__main__":
     fragments = gt + (fragments + 1)*gt.max()
 
     lsd_extractor = lsd.LsdExtractor(sigma=(10.0, 10.0, 10.0))
-    gt_lsds = lsd_extractor.get_descriptors(gt)
+    predicted_lsds = lsd_extractor.get_descriptors(gt)
+
+    if noise_factor > 0:
+        noise = -0.5 + np.random.random(predicted_lsds.shape)
+        predicted_lsds += noise*noise_factor
+        predicted_lsds = predicted_lsds.clip(0, 1)
 
     agglomeration = lsd.LsdAgglomeration(
         fragments,
-        gt_lsds,
+        predicted_lsds,
         lsd_extractor,
         keep_lsds=True)
 
@@ -50,14 +59,14 @@ if __name__ == "__main__":
     segmentations = np.array(segmentations)
     lsdss = np.array(lsdss).transpose((1, 0, 2, 3))
     gt = [gt[0]]*num_merges
-    gt_lsds = np.array([gt_lsds[:,0]]*num_merges).transpose((1, 0, 2, 3))
+    predicted_lsds = np.array([predicted_lsds[:,0]]*num_merges).transpose((1, 0, 2, 3))
 
-    diffs = np.sqrt(np.sum((gt_lsds - lsdss)**2, axis=0))
+    diffs = np.sqrt(np.sum((predicted_lsds - lsdss)**2, axis=0))
     diffs /= diffs.max()
 
     with h5py.File('test_synthetic.hdf', 'w') as f:
         f['volumes/gt'] = gt
-        f['volumes/gt_lsds'] = gt_lsds[0:3]
+        f['volumes/predicted_lsds'] = predicted_lsds[0:3]
         f['volumes/segmentations'] = segmentations
         f['volumes/lsdss'] = lsdss[0:3]
         f['volumes/diffs'] = diffs
