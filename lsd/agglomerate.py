@@ -86,18 +86,19 @@ class LsdAgglomeration:
 
         for u in self.rag.nodes():
 
-            logger.info("Initializing node %d", u)
+            logger.debug("Initializing node %d", u)
 
             bb = find_objects(self.fragments==u)[0]
             self.rag.node[u]['roi'] = self.__slice_to_roi(bb)
             self.rag.node[u]['score'] = self.__compute_score(u)
             self.rag.node[u]['labels'] = [u] # needed by scikit
 
-            logger.info("Node %d: %s", u, self.rag.node[u])
+            logger.debug("Node %d: %s", u, self.rag.node[u])
 
         logger.info("Scoring initial edges...")
 
         for (u, v) in self.rag.edges():
+            logger.debug("Initializing edge (%d, %d)", u, v)
             score = self.__score_merge(u, v)
             self.rag[u][v]['weight'] = score['weight']
 
