@@ -136,6 +136,11 @@ class LsdAgglomeration:
             update_segmentation=True,
             update_lsds=True)
 
+        logger.info(
+            "Merged %d into %d with score %f",
+            src,
+            dst,
+            self.rag[src][dst]['weight'])
         logger.debug(
             "Updated score of %d (merged with %d) to %f",
             dst, src, self.rag.node[dst]['score'])
