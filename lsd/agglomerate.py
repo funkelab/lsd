@@ -27,6 +27,11 @@ class LsdAgglomeration:
         voxel_size (``tuple`` of ``int``, optional):
 
             The voxel size of ``fragments``. Defaults to 1.
+
+        keep_lsds (``bool``, optional):
+
+            If ``True``, keeps the reconstructed local shape descriptors, which
+            can then be queried with `func:get_lsds`.
     '''
 
     def __init__(
@@ -34,9 +39,14 @@ class LsdAgglomeration:
             fragments,
             target_lsds,
             lsd_extractor,
-            voxel_size=None):
+            voxel_size=None,
+            keep_lsds=False):
 
         self.segmentation = np.array(fragments)
+        if keep_lsds:
+            self.lsds = np.zeros_like(target_lsds)
+        else:
+            self.lsds = None
         self.fragments = fragments
         self.target_lsds = target_lsds
         self.lsd_extractor = lsd_extractor
@@ -74,6 +84,11 @@ class LsdAgglomeration:
 
         return self.segmentation
 
+    def get_lsds(self):
+        '''Return the local shape descriptors corresponding to the current
+        segmentation. ``keep_lsds`` has to be set in the constructor.'''
+        return self.lsds
+
     def __initialize_rag(self):
 
         self.rag = RAG(self.fragments, connectivity=2)
@@ -90,7 +105,9 @@ class LsdAgglomeration:
 
             bb = find_objects(self.fragments==u)[0]
             self.rag.node[u]['roi'] = self.__slice_to_roi(bb)
-            self.rag.node[u]['score'] = self.__compute_score(u)
+            self.rag.node[u]['score'] = self.__compute_score(
+                u,
+                update_lsds=True)
             self.rag.node[u]['labels'] = [u] # needed by scikit
 
             logger.debug("Node %d: %s", u, self.rag.node[u])
@@ -111,7 +128,8 @@ class LsdAgglomeration:
         self.rag.node[dst]['score'] = self.__compute_score(
             src, dst,
             update_rois=True,
-            update_segmentation=True)
+            update_segmentation=True,
+            update_lsds=True)
 
         logger.debug(
             "Updated score of %d (merged with %d) to %f",
@@ -132,7 +150,13 @@ class LsdAgglomeration:
 
         return {'weight': weight}
 
-    def __compute_score(self, u, v=None, update_rois=False, update_segmentation=False):
+    def __compute_score(
+            self,
+            u,
+            v=None,
+            update_rois=False,
+            update_segmentation=False,
+            update_lsds=False):
         '''Compute the LSDs score for either one (v=None) or two fragments
         together.
 
@@ -167,8 +191,12 @@ class LsdAgglomeration:
             voxel_size=self.voxel_size)
 
         # subtract from target LSDs
-        diff = self.target_lsds[(slice(None),) + roi.get_bounding_box()] - lsds
+        lsds_slice = (slice(None),) + roi.get_bounding_box()
+        diff = self.target_lsds[lsds_slice] - lsds
         diff[:,roi_slice!=v] = 0
+
+        if update_lsds and self.lsds is not None:
+            self.lsds[lsds_slice][:,roi_slice==v] = lsds[:,roi_slice==v]
 
         return np.sum(diff**2)
 
