@@ -333,6 +333,13 @@ class LsdExtractor(object):
         else:
             raise RuntimeError("Unknown mode %s"%mode)
 
+    def get_context(self):
+        '''Return the context needed to compute the LSDs.'''
+        if self.mode == 'gaussian':
+            return tuple((3.0*s for s in self.sigma))
+        elif self.mode == 'sphere':
+            return self.sigma
+
     def __outer_product(self, array):
         '''Computes the unique values of the outer products of the first dimension
         of ``array``. If ``array`` has shape ``(k, d, h, w)``, for example, the
