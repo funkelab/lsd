@@ -51,9 +51,12 @@ class SqliteRagProvider(SharedRagProvider):
 
         connection = sqlite3.connect(self.filename)
         c = connection.cursor()
-        c.execute('''
-            DROP TABLE edges
-        ''')
+        try:
+            c.execute('''
+                DROP TABLE edges
+            ''')
+        except sqlite3.OperationalError:
+            pass
         c.execute('''
             CREATE TABLE edges (
                 u bigint, v bigint,
