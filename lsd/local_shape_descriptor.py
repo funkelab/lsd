@@ -61,7 +61,7 @@ def get_local_shape_descriptors(
         roi,
         labels)
 
-class LsdExtractor:
+class LsdExtractor(object):
 
     def __init__(self, sigma, mode='gaussian', downsample=1):
         '''

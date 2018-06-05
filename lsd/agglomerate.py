@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class LsdAgglomeration:
+class LsdAgglomeration(object):
     '''Create a local shape descriptor agglomerator.
 
     Args:
