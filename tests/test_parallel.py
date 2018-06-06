@@ -34,16 +34,22 @@ if __name__ == "__main__":
     lsd_extractor = lsd.LsdExtractor(sigma=(0.0, 10.0, 10.0))
     predicted_lsds = lsd_extractor.get_descriptors(gt)
 
-    rag = lsd.persistence.SqliteRagProvider.from_fragments(
+    rag_provider = lsd.persistence.SqliteRagProvider.from_fragments(
         fragments,
         'test_parallel_rag.db')
 
     def block_done(block_roi):
+
         print("Checking if %s is done..."%block_roi)
-        return False
+
+        rag = rag_provider[block_roi.get_bounding_box()]
+        done = [ d['agglomerated'] for _u, _v, d in rag.edges(data=True) ]
+
+        print(done)
+        return all(done)
 
     agglomeration = lsd.ParallelLsdAgglomeration(
-        rag,
+        rag_provider,
         fragments,
         predicted_lsds,
         lsd_extractor,
