@@ -7,11 +7,12 @@ logger = logging.getLogger(__name__)
 
 class SqliteSubRag(SubRag):
 
-    def __init__(self, filename):
+    def __init__(self, filename, sync_edge_attributes):
 
         super(SubRag, self).__init__()
 
         self.filename = filename
+        self.sync_edge_attributes = sync_edge_attributes
 
     def sync(self):
 
@@ -20,13 +21,16 @@ class SqliteSubRag(SubRag):
 
         for u, v, data in self.edges_iter(data=True):
 
-            merged = data['merged']
+            update = ', '.join([
+                key + ' = ' + data[key]
+                for key in self.sync_edge_attributes
+            ])
 
             c.execute('''
                 UPDATE edges
-                SET merged = %d
+                SET %s
                 WHERE u == %d and v == %d
-            '''%(merged, u, v))
+            '''%(update, u, v))
 
         connection.commit()
         connection.close()
@@ -34,6 +38,28 @@ class SqliteSubRag(SubRag):
 class SqliteRagProvider(SharedRagProvider):
     '''A shared region adjacency graph stored in an SQLite file.
     '''
+
+    # all edge attributes
+    edge_attributes = [
+        'u', 'v',
+        'center_x', 'center_y', 'center_z',
+        'merged',
+        'agglomerated'
+    ]
+
+    # edge atttributes that should be written back by SubRag.sync()
+    sync_edge_attributes = ['merged', 'agglomerated']
+
+    # SQL datatypes for each edge attribute
+    edge_attribute_dtypes = {
+        'u': 'bigint',
+        'v': 'bigint',
+        'center_x': 'real',
+        'center_y': 'real',
+        'center_z': 'real',
+        'merged': 'boolean',
+        'agglomerated': 'boolean'
+    }
 
     @staticmethod
     def from_fragments(fragments, filename, connectivity=2):
@@ -57,12 +83,12 @@ class SqliteRagProvider(SharedRagProvider):
             ''')
         except sqlite3.OperationalError:
             pass
-        c.execute('''
-            CREATE TABLE edges (
-                u bigint, v bigint,
-                center_z real, center_y real, center_x real,
-                merged boolean)
-        ''')
+
+        attributes = ', '.join([
+            '%s %s'%(name, self.edge_attribute_dtypes[name])
+            for name in self.edge_attributes
+        ])
+        c.execute('CREATE TABLE edges (%s)'%attributes)
 
         connection.commit()
         connection.close()
@@ -94,52 +120,65 @@ class SqliteRagProvider(SharedRagProvider):
         else:
             contains_condition = ''
 
+        connection = sqlite3.connect(self.filename)
+        c = connection.cursor()
         edge_query = '''
             SELECT * FROM edges %s
         '''%contains_condition
         logger.debug(edge_query)
-
-        connection = sqlite3.connect(self.filename)
-        c = connection.cursor()
         rows = c.execute(edge_query)
-        edge_list = [
-            (r[0], r[1], {
-                'location': (r[2], r[3], r[4]),
-                'merged': r[5]
-            })
-            for r in rows
+
+        # convert rows into dictionary
+        rows = [
+            {
+                name: row[i]
+                for i, name in enumerate(self.edge_attributes)
+            }
+            for row in rows
         ]
         connection.close()
 
-        graph = SqliteSubRag(self.filename)
-        graph.add_edges_from(edge_list)
+        # create a list of edges and their attributes
+        edge_list = [
+            (row['u'], row['v'], self.__remove_keys(row, ['u', 'v']))
+            for row in rows
+        ]
 
-        # TODO: add edge attributes
+        graph = SqliteSubRag(self.filename, self.sync_edge_attributes)
+        graph.add_edges_from(edge_list)
 
         return graph
 
+    def __remove_keys(self, dictionary, keys):
+
+        for key in keys:
+            del dictionary[key]
+        return dictionary
+
     def __write_rag(self, rag):
+        '''Write a complete RAG. This replaces whatever was stored in the DB
+        before.'''
 
         connection = sqlite3.connect(self.filename)
         c = connection.cursor()
-        c.execute('''
-            DELETE FROM edges
-        ''')
+        c.execute('DELETE FROM edges')
 
         for u, v, data in rag.edges_iter(data=True):
 
-            location = data['location']
+            values = {
+                'u': u,
+                'v': v
+            }
+            values.update(data)
 
-            c.execute('''
-                INSERT INTO
-                    edges (u, v, center_z, center_y, center_x, merged)
-                VALUES
-                    (%d, %d, %f, %f, %f, %d)
-            '''%(
-                u, v,
-                location[0], location[1], location[2],
-                False
-            ))
+            names = ', '.join(self.edge_attributes)
+            values = ', '.join([
+                str(values[key])
+                for key in self.edge_attributes
+            ])
+            query = 'INSERT INTO edges (%s) VALUES (%s)'%(names, values)
+            logger.debug(query)
+            c.execute(query)
 
         connection.commit()
         connection.close()
