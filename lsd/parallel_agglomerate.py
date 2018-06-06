@@ -1,4 +1,4 @@
-from peach import Coordinate, Roi, BlockTask, ProcessBlocks, BlockDoneTarget
+from peach import Coordinate, Roi, process_blockwise
 import logging
 import luigi
 
@@ -83,39 +83,6 @@ class ParallelLsdAgglomeration(object):
 
         logger.info("Merging until %f...", threshold)
 
-        block_done_function = self.block_done_function
-
-        class AgglomerateTask(BlockTask):
-
-            # class attributes that do not change between AgglomerateTasks
-            rag_provider = self.rag_provider
-            fragments = self.fragments
-            target_lsds = self.target_lsds
-            lsd_extractor = self.lsd_extractor
-
-            def run(self):
-
-                logger.info(
-                    "Agglomerating in block %s with context of %s",
-                    self.write_roi, self.read_roi)
-
-                # get the subgraph to work on
-                rag = self.rag_provider[self.read_roi.to_slices()]
-
-                # TODO: perform agglomeration
-                #
-                # for now, just mark the block as processed
-                rag.set_edge_attributes('agglomerated', 1)
-
-                # write back results
-                rag.sync()
-
-            def output(self):
-
-                return BlockDoneTarget(
-                    self.write_roi,
-                    block_done_function)
-
         dims = len(self.fragments.shape)
         if not self.voxel_size:
             self.voxel_size = Coordinate((1,)*dims)
@@ -126,11 +93,27 @@ class ParallelLsdAgglomeration(object):
         write_roi = Roi((0,)*dims, self.block_write_size)
         read_roi = write_roi.grow(context, context)
 
-        process_blocks = ProcessBlocks(
+        process_blockwise(
             total_roi,
             read_roi,
             write_roi,
-            AgglomerateTask)
+            lambda r, w: self.__agglomerate_block(r, w),
+            self.block_done_function,
+            self.num_workers)
 
-        luigi.build([process_blocks], log_level='INFO',
-                workers=self.num_workers)
+    def __agglomerate_block(self, read_roi, write_roi):
+
+        logger.info(
+            "Agglomerating in block %s with context of %s",
+            write_roi, read_roi)
+
+        # get the subgraph to work on
+        rag = self.rag_provider[read_roi.to_slices()]
+
+        # TODO: perform agglomeration
+        #
+        # for now, just mark the block as processed
+        rag.set_edge_attributes('agglomerated', 1)
+
+        # write back results
+        rag.sync()
