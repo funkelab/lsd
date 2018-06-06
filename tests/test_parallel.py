@@ -10,8 +10,9 @@ from luigi.interface import setup_interface_logging
 setup_interface_logging.has_run = True
 
 logging.basicConfig(level=logging.INFO)
+# logging.getLogger('lsd.persistence.sqlite_rag_provider').setLevel(logging.DEBUG)
 
-size = (1, 100, 100)
+size = (1, 200, 200)
 
 def create_random_segmentation(seed):
 
@@ -40,12 +41,9 @@ if __name__ == "__main__":
 
     def block_done(block_roi):
 
-        print("Checking if %s is done..."%block_roi)
-
         rag = rag_provider[block_roi.to_slices()]
         done = [ d['agglomerated'] for _u, _v, d in rag.edges(data=True) ]
 
-        print(done)
         return all(done)
 
     agglomeration = lsd.ParallelLsdAgglomeration(
@@ -55,6 +53,6 @@ if __name__ == "__main__":
         lsd_extractor,
         block_write_size=(1, 10, 10),
         block_done_function=block_done,
-        num_workers=1)
+        num_workers=10)
 
     agglomeration.merge_until(0)
