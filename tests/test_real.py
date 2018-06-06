@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # crop lsds to affinities
     lsds = lsds[
         (slice(None),) +
-        ((affs_roi - lsds_offset)/voxel_size).get_bounding_box()]
+        ((affs_roi - lsds_offset)/voxel_size).to_slices()]
 
     fragments, distances, seeds = lsd.fragments.watershed_from_affinities(
         affs,

@@ -184,7 +184,7 @@ class LsdAgglomeration(object):
             self.rag.node[v]['roi'] = roi
 
         # get slice of segmentation for dst roi
-        roi_slice = self.segmentation[roi.get_bounding_box()]
+        roi_slice = self.segmentation[roi.to_slices()]
         if not update_segmentation:
             roi_slice = np.array(roi_slice)
 
@@ -201,7 +201,7 @@ class LsdAgglomeration(object):
             voxel_size=self.voxel_size)
 
         # subtract from target LSDs
-        lsds_slice = (slice(None),) + roi.get_bounding_box()
+        lsds_slice = (slice(None),) + roi.to_slices()
         diff = self.target_lsds[lsds_slice] - lsds
         diff[:,roi_slice!=v] = 0
 

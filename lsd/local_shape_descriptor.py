@@ -132,7 +132,7 @@ class LsdExtractor(object):
         if roi is None:
             roi = gp.Roi((0,)*dims, segmentation.shape)
 
-        roi_slices = roi.get_bounding_box()
+        roi_slices = roi.to_slices()
 
         if labels is None:
             labels = np.unique(segmentation[roi_slices])
@@ -258,7 +258,7 @@ class LsdExtractor(object):
 
         logger.debug("Computing offset of mean position...")
         start = time.time()
-        mean_offset = mean - coords[(slice(None),) + roi.get_bounding_box()]
+        mean_offset = mean - coords[(slice(None),) + roi.to_slices()]
 
         # covariance
         logger.debug("Computing covariance...")
@@ -305,7 +305,7 @@ class LsdExtractor(object):
         if roi is None:
             roi_slices = (slice(None),)
         else:
-            roi_slices = roi.get_bounding_box()
+            roi_slices = roi.to_slices()
 
         if mode == 'gaussian':
 

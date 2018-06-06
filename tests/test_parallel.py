@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
         print("Checking if %s is done..."%block_roi)
 
-        rag = rag_provider[block_roi.get_bounding_box()]
+        rag = rag_provider[block_roi.to_slices()]
         done = [ d['agglomerated'] for _u, _v, d in rag.edges(data=True) ]
 
         print(done)
