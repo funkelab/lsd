@@ -53,6 +53,6 @@ if __name__ == "__main__":
         lsd_extractor,
         block_write_size=(1, 10, 10),
         block_done_function=block_done,
-        num_workers=10)
+        num_workers=1)
 
     agglomeration.merge_until(0)

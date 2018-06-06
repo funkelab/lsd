@@ -1,6 +1,8 @@
+from agglomerate import LsdAgglomeration
 from peach import Coordinate, Roi, process_blockwise
 import logging
 import luigi
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -87,11 +89,22 @@ class ParallelLsdAgglomeration(object):
         if not self.voxel_size:
             self.voxel_size = Coordinate((1,)*dims)
 
+        voxel_size = self.voxel_size
+
         context = Coordinate(self.lsd_extractor.get_context())
 
-        total_roi = Roi((0,)*dims, self.voxel_size*self.fragments.shape)
+        # assure that context is a multiple of voxel size
+        one = Coordinate((1,)*len(context))
+        context = ((context - one)/voxel_size + one)*voxel_size
+
+        total_roi = Roi((0,)*dims, voxel_size*self.fragments.shape)
         write_roi = Roi((0,)*dims, self.block_write_size)
         read_roi = write_roi.grow(context, context)
+
+        assert (write_roi/voxel_size)*voxel_size == write_roi, (
+            "block_write_size needs to be a multiple of voxel_size")
+        assert (write_roi/voxel_size)*voxel_size == write_roi, (
+            "read_roi needs to be a multiple of voxel_size")
 
         process_blockwise(
             total_roi,
@@ -107,13 +120,55 @@ class ParallelLsdAgglomeration(object):
             "Agglomerating in block %s with context of %s",
             write_roi, read_roi)
 
+        read_roi_voxels = read_roi/self.voxel_size
+        write_roi_voxels = write_roi/self.voxel_size
+
         # get the subgraph to work on
         rag = self.rag_provider[read_roi.to_slices()]
 
-        # TODO: perform agglomeration
-        #
+        # get currently connected componets
+        components = rag.get_connected_components()
+
+        # get fragments slice
+        fragments = self.fragments[read_roi_voxels.to_slices()]
+        fragments = self.__relabel(fragments, components)
+
+        # get LSDs slice
+        target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
+
+        logger.info("fragments: %s", fragments.shape)
+        logger.info("target_lsds: %s", target_lsds.shape)
+
+        # agglomerate
+        agglomeration = LsdAgglomeration(
+            fragments,
+            target_lsds,
+            self.lsd_extractor,
+            voxel_size=self.voxel_size)
+        agglomeration.merge_until(0)
+
+        # TODO:
+        # * forward rag to LsdAgglomeration
+        #   OR
+        #   keep RAGs separate?
+        # * get record of merged edges
+        # * merge only edges inside write_roi
+        #   OR
+        #   set 'merged' attribute only for edges inside write_roi
+
         # for now, just mark the block as processed
         rag.set_edge_attributes('agglomerated', 1)
 
         # write back results
         rag.sync()
+
+    def __relabel(self, array, components):
+
+        values_map = np.arange(int(array.max() + 1), dtype=array.dtype)
+
+        for i, component in enumerate(components):
+            for c in component:
+                if c < len(values_map):
+                    values_map[c] = i + 1
+
+        return values_map[array]
