@@ -11,6 +11,12 @@ class Rag(skimage.future.graph.RAG):
             self.__find_edge_centers(fragments)
             self.__add_esential_edge_attributes()
 
+    def set_edge_attributes(self, key, value):
+        '''Set all the attribute of all edges to the given value.'''
+
+        for _u, _v, data in self.edges_iter(data=True):
+            data[key] = value
+
     def __find_edge_centers(self, fragments):
         '''Get the center of an edge as the mean of the fragment centroids.'''
 
@@ -39,5 +45,6 @@ class Rag(skimage.future.graph.RAG):
     def __add_esential_edge_attributes(self):
 
         for u, v, data in self.edges_iter(data=True):
+
             data['merged'] = 0
             data['agglomerated'] = 0

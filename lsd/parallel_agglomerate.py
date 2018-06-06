@@ -13,13 +13,14 @@ class ParallelLsdAgglomeration(object):
 
     Args:
 
-        rag (`class:GeometricGraph`):
+        rag_provider (`class:SharedRagProvider`):
 
-            The region adjacency graph to agglomerate on.
+            A RAG provider to query for subgraphs. Results will be written back
+            to this provider in mutually exclusive writes.
 
         fragments (array-like):
 
-            Label array of the nodes in ``rag``.
+            Label array of the nodes in the RAG provided by ``rag_provider``.
 
         target_lsds (array-like):
 
@@ -36,7 +37,9 @@ class ParallelLsdAgglomeration(object):
 
             Note that due to context needed to compute the LSDs the actual read
             size per block is larger. The necessary context is automatically
-            determined from the given ``lsd_extractor``.
+            determined from the given ``lsd_extractor``. Results will only be
+            computed and written back for blocks that fit entirely into the
+            total ROI.
 
         block_done_function (function):
 
@@ -55,7 +58,7 @@ class ParallelLsdAgglomeration(object):
 
     def __init__(
             self,
-            rag,
+            rag_provider,
             fragments,
             target_lsds,
             lsd_extractor,
@@ -64,7 +67,7 @@ class ParallelLsdAgglomeration(object):
             num_workers,
             voxel_size=None):
 
-        self.rag = rag
+        self.rag_provider = rag_provider
         self.fragments = fragments
         self.target_lsds = target_lsds
         self.lsd_extractor = lsd_extractor
@@ -84,7 +87,8 @@ class ParallelLsdAgglomeration(object):
 
         class AgglomerateTask(BlockTask):
 
-            rag = self.rag
+            # class attributes that do not change between AgglomerateTasks
+            rag_provider = self.rag_provider
             fragments = self.fragments
             target_lsds = self.target_lsds
             lsd_extractor = self.lsd_extractor
@@ -94,6 +98,17 @@ class ParallelLsdAgglomeration(object):
                 logger.info(
                     "Agglomerating in block %s with context of %s",
                     self.write_roi, self.read_roi)
+
+                # get the subgraph to work on
+                rag = self.rag_provider[self.read_roi.to_slices()]
+
+                # TODO: perform agglomeration
+                #
+                # for now, just mark the block as processed
+                rag.set_edge_attributes('agglomerated', 1)
+
+                # write back results
+                rag.sync()
 
             def output(self):
 
