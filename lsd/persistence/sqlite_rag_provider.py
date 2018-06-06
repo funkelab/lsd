@@ -21,16 +21,20 @@ class SqliteSubRag(SubRag):
 
         for u, v, data in self.edges_iter(data=True):
 
+            u, v = min(u, v), max(u, v)
+
             update = ', '.join([
-                key + ' = ' + data[key]
+                key + ' = ' + str(data[key])
                 for key in self.sync_edge_attributes
             ])
 
-            c.execute('''
+            query = '''
                 UPDATE edges
                 SET %s
                 WHERE u == %d and v == %d
-            '''%(update, u, v))
+            '''%(update, u, v)
+            logger.debug(query)
+            c.execute(query)
 
         connection.commit()
         connection.close()
@@ -143,6 +147,7 @@ class SqliteRagProvider(SharedRagProvider):
             (row['u'], row['v'], self.__remove_keys(row, ['u', 'v']))
             for row in rows
         ]
+        logger.debug("read edges: %s", edge_list)
 
         graph = SqliteSubRag(self.filename, self.sync_edge_attributes)
         graph.add_edges_from(edge_list)
@@ -164,6 +169,8 @@ class SqliteRagProvider(SharedRagProvider):
         c.execute('DELETE FROM edges')
 
         for u, v, data in rag.edges_iter(data=True):
+
+            u, v = min(u, v), max(u, v)
 
             values = {
                 'u': u,
