@@ -4,6 +4,7 @@ from graph_merge import merge_hierarchical
 import gunpowder as gp
 import numpy as np
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class LsdAgglomeration(object):
         self.fragments = fragments
         self.target_lsds = target_lsds
         self.lsd_extractor = lsd_extractor
+        self.context = lsd_extractor.get_context()
 
         if voxel_size is None:
             self.voxel_size = (1,)*len(fragments.shape)
@@ -177,36 +179,71 @@ class LsdAgglomeration(object):
         ``self.segmentation``.'''
 
         # get ROI
-        roi = self.rag.node[u]['roi']
+        roi_u = self.rag.node[u]['roi']
+
         if v is not None:
-            roi = roi.union(self.rag.node[v]['roi'])
-        if update_rois:
-            self.rag.node[v]['roi'] = roi
+
+            # u and v are given, we compute the score for an edge -> update
+            # LSDs only on edge bounding box
+            roi_v = self.rag.node[v]['roi']
+
+            segmentation_roi = gp.Roi(
+                (0,)*len(self.segmentation.shape),
+                self.segmentation.shape)
+
+            # print("roi u: %s"%roi_u)
+            # print("roi v: %s"%roi_v)
+            context = tuple(int(math.ceil(c/vs)) for c, vs in zip(self.context, self.voxel_size))
+            roi_u_grown = roi_u.grow(context, context)
+            roi_v_grown = roi_v.grow(context, context)
+            roi_u_grown = roi_u_grown.intersect(segmentation_roi)
+            roi_v_grown = roi_v_grown.intersect(segmentation_roi)
+            # print("grown roi u: %s"%roi_u)
+            # print("grown roi v: %s"%roi_v)
+
+            compute_roi = roi_u_grown.intersect(roi_v_grown)
+            compute_roi = compute_roi.intersect(roi_u.union(roi_v))
+            total_roi = compute_roi.grow(context, context)
+            total_roi = total_roi.intersect(segmentation_roi)
+            # print("compute roi v: %s"%compute_roi)
+            # print("total roi v: %s"%total_roi)
+
+            if update_rois:
+                # set the ROI of v to the union of u and v
+                self.rag.node[v]['roi'] = roi_u.union(roi_v)
+
+        else:
+
+            total_roi = roi_u
+            compute_roi = total_roi
 
         # get slice of segmentation for dst roi
-        roi_slice = self.segmentation[roi.to_slices()]
+        segmentation = self.segmentation[total_roi.to_slices()]
         if not update_segmentation:
-            roi_slice = np.array(roi_slice)
+            segmentation = np.array(segmentation)
 
         if v is not None:
             # mark u as v
-            roi_slice[roi_slice==u] = v
+            segmentation[segmentation==u] = v
         else:
             v = u
 
         # get LSDs for u(+v)
+        compute_in_total_roi = compute_roi - total_roi.get_begin()
         lsds = self.lsd_extractor.get_descriptors(
-            roi_slice,
+            segmentation,
+            roi=compute_in_total_roi,
             labels=[v],
             voxel_size=self.voxel_size)
 
         # subtract from target LSDs
-        lsds_slice = (slice(None),) + roi.to_slices()
+        v_mask = segmentation[compute_in_total_roi.to_slices()] == v
+        lsds_slice = (slice(None),) + compute_roi.to_slices()
         diff = self.target_lsds[lsds_slice] - lsds
-        diff[:,roi_slice!=v] = 0
+        diff[:,v_mask==0] = 0
 
         if update_lsds and self.lsds is not None:
-            self.lsds[lsds_slice][:,roi_slice==v] = lsds[:,roi_slice==v]
+            self.lsds[lsds_slice][:,v_mask] = lsds[:,v_mask]
 
         return np.sum(diff**2)
 
