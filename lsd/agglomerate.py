@@ -172,14 +172,13 @@ class LsdAgglomeration(object):
         current segmentaion, the ROI of v, and computes the new score for v.
         '''
 
+        self.__merge_segmentation(u, v)
+
         (change_roi, context_roi) = self.__get_lsds_edge_rois(u, v)
 
         # get slice of segmentation for context_roi (no copy, we want to keep
         # the changes made)
         segmentation = self.segmentation[context_roi.to_slices()]
-
-        # mark u as v in segmentation
-        segmentation[segmentation==u] = v
 
         # slices to cut change ROI from LSDs
         lsds_slice = (slice(None),) + change_roi.to_slices()
@@ -215,6 +214,12 @@ class LsdAgglomeration(object):
         logger.debug(
             "Updated score of %d (merged with %d) to %f",
             u, v, self.rag.node[v]['score'])
+
+    def __merge_segmentation(self, u, v):
+        '''Replace u with v in segmentation.'''
+
+        segmentation_u = self.segmentation[self.rag.node[u]['roi'].to_slices()]
+        segmentation_u[segmentation_u==u] = v
 
     def __compute_edge_score(self, u, v):
         '''Compute the LSDs score for an edge.
