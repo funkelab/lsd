@@ -30,10 +30,10 @@ class LsdAgglomeration(object):
 
             The voxel size of ``fragments``. Defaults to 1.
 
-        keep_lsds (``bool``, optional):
+        rag (`class:Rag`, optional):
 
-            If ``True``, keeps the reconstructed local shape descriptors, which
-            can then be queried with `func:get_lsds`.
+            A custom region adjacency graph (RAG) to agglomerate on. If not
+            given, a RAG will be extracted from ``fragments``.
     '''
 
     def __init__(
@@ -41,13 +41,15 @@ class LsdAgglomeration(object):
             fragments,
             target_lsds,
             lsd_extractor,
-            voxel_size=None):
+            voxel_size=None,
+            rag=None):
 
         self.segmentation = np.array(fragments)
         self.lsds = np.zeros_like(target_lsds)
         self.fragments = fragments
         self.target_lsds = target_lsds
         self.lsd_extractor = lsd_extractor
+        self.rag = rag
         self.context = lsd_extractor.get_context()
 
         if voxel_size is None:
@@ -94,7 +96,11 @@ class LsdAgglomeration(object):
 
     def __initialize_rag(self):
 
-        self.rag = RAG(self.fragments, connectivity=2)
+        if self.rag is None:
+
+            logger.info("Extracting RAG from fragments...")
+            self.rag = RAG(self.fragments, connectivity=2)
+
         logger.info(
             "RAG contains %d nodes and %d edges",
             len(self.rag.nodes()),
@@ -102,12 +108,26 @@ class LsdAgglomeration(object):
 
         logger.info("Computing LSDs for initial fragments...")
 
+        dims = len(self.segmentation.shape)
+
         for u in self.rag.nodes():
 
             logger.debug("Initializing node %d", u)
 
-            bb = find_objects(self.fragments==u)[0]
-            self.rag.node[u]['roi'] = self.__slice_to_roi(bb)
+            if 'roi' not in self.rag.node[u]:
+
+                bbs = find_objects(self.fragments==u)
+
+                if len(bbs) == 0:
+
+                    self.rag.node[u]['roi'] = None
+
+                else:
+
+                    assert len(bbs) == 1
+                    roi = self.__slice_to_roi(bbs[0])
+                    self.rag.node[u]['roi'] = roi
+
             self.rag.node[u]['score'] = self.__compute_node_score(u)
             self.rag.node[u]['labels'] = [u] # needed by scikit
 
@@ -126,6 +146,9 @@ class LsdAgglomeration(object):
 
         weight = self.__compute_edge_score(u, v)
 
+        if weight is None:
+            weight = np.nan
+
         logger.debug("Scoring merge between %d and %d with %f", u, v, weight)
 
         return {'weight': weight}
@@ -141,6 +164,10 @@ class LsdAgglomeration(object):
 
         # get ROI
         roi = self.rag.node[u]['roi']
+
+        # node is not part of volume
+        if roi is None:
+            return 0
 
         # get slice of segmentation for roi
         segmentation = self.segmentation[roi.to_slices()]
@@ -235,6 +262,9 @@ class LsdAgglomeration(object):
 
         (change_roi, context_roi) = self.__get_lsds_edge_rois(u, v)
 
+        if change_roi is None:
+            return None
+
         # get slice of segmentation for context_roi (make a copy, since we
         # change it later)
         segmentation = self.segmentation[context_roi.to_slices()]
@@ -295,6 +325,10 @@ class LsdAgglomeration(object):
         # get node ROIs
         roi_u = self.rag.node[u]['roi']
         roi_v = self.rag.node[v]['roi']
+
+        # nodes that are not part of the volume have no change_roi
+        if roi_u is None or roi_v is None:
+            return (None, None)
 
         # the ROI of the complete volume
         total_roi = gp.Roi(

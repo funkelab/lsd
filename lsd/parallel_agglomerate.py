@@ -129,9 +129,14 @@ class ParallelLsdAgglomeration(object):
         # get currently connected componets
         components = rag.get_connected_components()
 
+        # replace each connected component by a single node
+        component_nodes = self.__contract_rag(rag, components)
+
         # get fragments slice
         fragments = self.fragments[read_roi_voxels.to_slices()]
-        fragments = self.__relabel(fragments, components)
+
+        # relabel fragments of the same connected components to match RAG
+        fragments = self.__relabel(fragments, components, component_nodes)
 
         # get LSDs slice
         target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
@@ -139,18 +144,17 @@ class ParallelLsdAgglomeration(object):
         logger.info("fragments: %s", fragments.shape)
         logger.info("target_lsds: %s", target_lsds.shape)
 
-        # agglomerate
+        # agglomerate on a copy of the original RAG (agglomeration changes the
+        # RAG)
         agglomeration = LsdAgglomeration(
             fragments,
             target_lsds,
             self.lsd_extractor,
-            voxel_size=self.voxel_size)
-        agglomeration.merge_until(0)
+            voxel_size=self.voxel_size,
+            rag=rag.copy())
+        num_merged = agglomeration.merge_until(0)
 
         # TODO:
-        # * forward rag to LsdAgglomeration
-        #   OR
-        #   keep RAGs separate?
         # * get record of merged edges
         # * merge only edges inside write_roi
         #   OR
@@ -159,16 +163,33 @@ class ParallelLsdAgglomeration(object):
         # for now, just mark the block as processed
         rag.set_edge_attributes('agglomerated', 1)
 
+        logger.info("merged %d edges", num_merged)
+
         # write back results
         rag.sync()
 
-    def __relabel(self, array, components):
+    def __contract_rag(self, rag, components):
+        '''Contract all nodes of one component into a single node, return the
+        single node for each component.'''
+
+        component_nodes = []
+
+        for component in components:
+
+            for i in range(1, len(component)):
+                rag.merge_nodes(component[i - 1], component[i])
+
+            component_nodes.append(component[-1])
+
+        return component_nodes
+
+    def __relabel(self, array, components, component_labels):
 
         values_map = np.arange(int(array.max() + 1), dtype=array.dtype)
 
-        for i, component in enumerate(components):
+        for component, label in zip(components, component_labels):
             for c in component:
                 if c < len(values_map):
-                    values_map[c] = i + 1
+                    values_map[c] = label
 
         return values_map[array]

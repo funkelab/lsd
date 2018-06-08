@@ -1,5 +1,6 @@
 from scipy.ndimage.measurements import center_of_mass
 from networkx import Graph, connected_components
+import copy
 import skimage
 
 class Rag(skimage.future.graph.RAG):
@@ -27,7 +28,14 @@ class Rag(skimage.future.graph.RAG):
             if data['merged']:
                 merge_graph.add_edge(u, v)
 
-        return connected_components(merge_graph)
+        components = connected_components(merge_graph)
+
+        return [ list(component) for component in components ]
+
+    def copy(self):
+        '''Return a deep copy of this RAG.'''
+
+        return copy.deepcopy(self)
 
     def __find_edge_centers(self, fragments):
         '''Get the center of an edge as the mean of the fragment centroids.'''
