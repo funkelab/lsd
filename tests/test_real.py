@@ -4,7 +4,7 @@ import logging
 import gunpowder as gp
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
+# logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
 
