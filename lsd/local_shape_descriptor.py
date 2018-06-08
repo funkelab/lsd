@@ -114,7 +114,7 @@ class LsdExtractor(object):
 
             roi (``gunpowder.Roi``, optional):
 
-                Restrict the computation to the given ROI.
+                Restrict the computation to the given ROI in voxels.
 
             labels (array-like of ``int``, optional):
 

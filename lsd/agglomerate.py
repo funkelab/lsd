@@ -4,6 +4,7 @@ from graph_merge import merge_hierarchical
 import gunpowder as gp
 import numpy as np
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +41,14 @@ class LsdAgglomeration(object):
             fragments,
             target_lsds,
             lsd_extractor,
-            voxel_size=None,
-            keep_lsds=False):
+            voxel_size=None):
 
         self.segmentation = np.array(fragments)
-        if keep_lsds:
-            self.lsds = np.zeros_like(target_lsds)
-        else:
-            self.lsds = None
+        self.lsds = np.zeros_like(target_lsds)
         self.fragments = fragments
         self.target_lsds = target_lsds
         self.lsd_extractor = lsd_extractor
+        self.context = lsd_extractor.get_context()
 
         if voxel_size is None:
             self.voxel_size = (1,)*len(fragments.shape)
@@ -66,7 +64,7 @@ class LsdAgglomeration(object):
 
         logger.info("Merging until %f...", threshold)
 
-        merge_func = lambda _, src, dst: self.__update_lsds(src, dst)
+        merge_func = lambda _, src, dst: self.__merge_nodes(src, dst)
         weight_func = lambda _g, _s, u, v: self.__score_merge(u, v)
         num_merges = merge_hierarchical(
             self.fragments,
@@ -91,7 +89,7 @@ class LsdAgglomeration(object):
 
     def get_lsds(self):
         '''Return the local shape descriptors corresponding to the current
-        segmentation. ``keep_lsds`` has to be set in the constructor.'''
+        segmentation.'''
         return self.lsds
 
     def __initialize_rag(self):
@@ -110,9 +108,7 @@ class LsdAgglomeration(object):
 
             bb = find_objects(self.fragments==u)[0]
             self.rag.node[u]['roi'] = self.__slice_to_roi(bb)
-            self.rag.node[u]['score'] = self.__compute_score(
-                u,
-                update_lsds=True)
+            self.rag.node[u]['score'] = self.__compute_node_score(u)
             self.rag.node[u]['labels'] = [u] # needed by scikit
 
             logger.debug("Node %d: %s", u, self.rag.node[u])
@@ -124,91 +120,213 @@ class LsdAgglomeration(object):
             score = self.__score_merge(u, v)
             self.rag[u][v]['weight'] = score['weight']
 
-    def __update_lsds(self, src, dst):
-        '''Callback for merge_hierarchical, called before src and dst are
-        merged.'''
-
-        # src and dst get merged into dst, update the stats for dst
-
-        self.rag.node[dst]['score'] = self.__compute_score(
-            src, dst,
-            update_rois=True,
-            update_segmentation=True,
-            update_lsds=True)
-
-        logger.info(
-            "Merged %d into %d with score %f",
-            src,
-            dst,
-            self.rag[src][dst]['weight'])
-        logger.debug(
-            "Updated score of %d (merged with %d) to %f",
-            dst, src, self.rag.node[dst]['score'])
-
     def __score_merge(self, u, v):
         '''Callback for merge_hierarchical, called to get the weight of a new
         edge.'''
 
-        score_u = self.rag.node[u]['score']
-        score_v = self.rag.node[v]['score']
-
-        score_uv = self.__compute_score(u, v)
-
-        weight = score_uv - (score_u + score_v)
+        weight = self.__compute_edge_score(u, v)
 
         logger.debug("Scoring merge between %d and %d with %f", u, v, weight)
 
         return {'weight': weight}
 
-    def __compute_score(
-            self,
-            u,
-            v=None,
-            update_rois=False,
-            update_segmentation=False,
-            update_lsds=False):
-        '''Compute the LSDs score for either one (v=None) or two fragments
-        together.
+    def __compute_node_score(self, u):
+        '''Compute the LSDs score for a node.
 
-        If ``update_rois``, the ROI for v will be replaced with the ROI for
-        u+v.
+        The node score is the sum of squared differences between the node LSDs
+        and the target LSDs.
 
-        If ``update_segmentation``, also replaces all occurences of u with v in
-        ``self.segmentation``.'''
+        This also stores the node's LSDs in self.lsds.
+        '''
 
         # get ROI
         roi = self.rag.node[u]['roi']
-        if v is not None:
-            roi = roi.union(self.rag.node[v]['roi'])
-        if update_rois:
-            self.rag.node[v]['roi'] = roi
 
-        # get slice of segmentation for dst roi
-        roi_slice = self.segmentation[roi.to_slices()]
-        if not update_segmentation:
-            roi_slice = np.array(roi_slice)
+        # get slice of segmentation for roi
+        segmentation = self.segmentation[roi.to_slices()]
 
-        if v is not None:
-            # mark u as v
-            roi_slice[roi_slice==u] = v
-        else:
-            v = u
-
-        # get LSDs for u(+v)
+        # get LSDs for u
         lsds = self.lsd_extractor.get_descriptors(
-            roi_slice,
-            labels=[v],
+            segmentation,
+            labels=[u],
             voxel_size=self.voxel_size)
 
         # subtract from target LSDs
+        u_mask = segmentation == u
         lsds_slice = (slice(None),) + roi.to_slices()
         diff = self.target_lsds[lsds_slice] - lsds
-        diff[:,roi_slice!=v] = 0
+        diff[:,u_mask==0] = 0
 
-        if update_lsds and self.lsds is not None:
-            self.lsds[lsds_slice][:,roi_slice==v] = lsds[:,roi_slice==v]
+        # update LSDs for u
+        self.lsds[lsds_slice][:,u_mask] = lsds[:,u_mask]
 
         return np.sum(diff**2)
+
+    def __merge_nodes(self, u, v):
+        '''Merge node u into v.
+
+        This does not change the graph (this is taken care of by the
+        hierarchical agglomeration).
+
+        This updates the segmentation (u is replaced by v), the LSDs of the
+        current segmentaion, the ROI of v, and computes the new score for v.
+        '''
+
+        self.__merge_segmentation(u, v)
+
+        (change_roi, context_roi) = self.__get_lsds_edge_rois(u, v)
+
+        # get slice of segmentation for context_roi (no copy, we want to keep
+        # the changes made)
+        segmentation = self.segmentation[context_roi.to_slices()]
+
+        # slices to cut change ROI from LSDs
+        lsds_slice = (slice(None),) + change_roi.to_slices()
+
+        # change ROI relative to context ROI
+        change_in_context_roi = change_roi - context_roi.get_begin()
+
+        # get LSDs for (u + v)
+        lsds_merged = self.lsd_extractor.get_descriptors(
+            segmentation,
+            roi=change_in_context_roi,
+            labels=[v],
+            voxel_size=self.voxel_size)
+
+        # update LSDs (only where segmentation == v)
+        v_mask = segmentation[change_in_context_roi.to_slices()] == v
+        self.lsds[lsds_slice][:,v_mask] = lsds_merged[:,v_mask]
+
+        # set the ROI of v to the union of u and v
+        roi_u = self.rag.node[u]['roi']
+        roi_v = self.rag.node[v]['roi']
+        self.rag.node[v]['roi'] = roi_u.union(roi_v)
+
+        # update node score
+        self.rag.node[v]['score'] = (
+            self.rag.node[v]['score'] +
+            self.rag.node[u]['score'] +
+            self.rag[u][v]['weight'])
+
+        logger.info(
+            "Merged %d into %d with score %f",
+            u, v, self.rag[u][v]['weight'])
+        logger.debug(
+            "Updated score of %d (merged with %d) to %f",
+            u, v, self.rag.node[v]['score'])
+
+    def __merge_segmentation(self, u, v):
+        '''Replace u with v in segmentation.'''
+
+        segmentation_u = self.segmentation[self.rag.node[u]['roi'].to_slices()]
+        segmentation_u[segmentation_u==u] = v
+
+    def __compute_edge_score(self, u, v):
+        '''Compute the LSDs score for an edge.
+
+        The edge score is by how much the incident node scores would improve
+        when merged (negative if the score decreases). More formally, it is:
+
+            s(u + v) - (s(u) + s(v))
+
+        where s(.) is the score of a node and (u + v) is a node obtained from
+        merging u and v.
+        '''
+
+        (change_roi, context_roi) = self.__get_lsds_edge_rois(u, v)
+
+        # get slice of segmentation for context_roi (make a copy, since we
+        # change it later)
+        segmentation = self.segmentation[context_roi.to_slices()]
+        segmentation = np.array(segmentation)
+
+        # slices to cut change ROI from LSDs
+        lsds_slice = (slice(None),) + change_roi.to_slices()
+
+        # change ROI relative to context ROI
+        change_in_context_roi = change_roi - context_roi.get_begin()
+
+        # mask for voxels in u and v for change ROI
+        not_uv_mask = np.logical_not(
+            np.isin(
+                segmentation[change_in_context_roi.to_slices()],
+                [u, v]
+            )
+        )
+
+        # get s(u) + s(v)
+        lsds_separate = self.lsds[lsds_slice]
+        diff = self.target_lsds[lsds_slice] - lsds_separate
+        diff[:,not_uv_mask] = 0
+        score_separate = np.sum(diff**2)
+
+        # mark u as v in segmentation
+        segmentation[segmentation==u] = v
+
+        # get s(u + v)
+        lsds_merged = self.lsd_extractor.get_descriptors(
+            segmentation,
+            roi=change_in_context_roi,
+            labels=[v],
+            voxel_size=self.voxel_size)
+        diff = self.target_lsds[lsds_slice] - lsds_merged
+        diff[:,not_uv_mask] = 0
+        score_merged = np.sum(diff**2)
+
+        assert lsds_separate.shape == lsds_merged.shape
+
+        logger.debug(
+            "Edge score for (%d, %d) is %f - %f = %f",
+            u, v, score_merged, score_separate,
+            score_merged - score_separate)
+
+        return score_merged - score_separate
+
+    def __get_lsds_edge_rois(self, u, v):
+        '''Get two ROIs (change_roi, context_roi).
+
+        change_roi bounds the regions in which LSDs are affected by a merge of
+        u and v.
+
+        context_roi is a superset of change_roi and bounds the region that
+        needs to be considered to compute LSDs in change_roi.
+        '''
+
+        # get node ROIs
+        roi_u = self.rag.node[u]['roi']
+        roi_v = self.rag.node[v]['roi']
+
+        # the ROI of the complete volume
+        total_roi = gp.Roi(
+            (0,)*len(self.segmentation.shape),
+            self.segmentation.shape)
+
+        # the context used by the shape descriptor in voxels
+        context = tuple(int(math.ceil(c/vs)) for c, vs in zip(self.context, self.voxel_size))
+
+        # grow the node ROIs by context and ensure they are still within the
+        # total ROI
+        roi_u_grown = roi_u.grow(context, context)
+        roi_v_grown = roi_v.grow(context, context)
+        roi_u_grown = roi_u_grown.intersect(total_roi)
+        roi_v_grown = roi_v_grown.intersect(total_roi)
+
+        # LSDs have to be computed and compared to target only within the
+        # intersection of the grown node ROIs (other parts of u and v are not
+        # affected by the merge, due to finite context)
+        change_roi = roi_u_grown.intersect(roi_v_grown)
+
+        # we can further restric the compute ROI to the union of the node ROIs,
+        # since voxels outside of the nodes do not contribute, either
+        change_roi = change_roi.intersect(roi_u.union(roi_v))
+
+        # the context we need to compute LSDs in change_roi
+        context_roi = change_roi.grow(context, context)
+
+        # this can again be limited to the union of the node ROIs
+        context_roi = context_roi.intersect(roi_u.union(roi_v))
+
+        return (change_roi, context_roi)
 
     def __slice_to_roi(self, slices):
 

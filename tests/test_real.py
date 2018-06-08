@@ -50,12 +50,12 @@ if __name__ == "__main__":
         f['volumes/fragments'] = fragments
         f['volumes/fragments'].attrs['resolution'] = voxel_size
         f['volumes/fragments'].attrs['offset'] = lsds_roi.get_offset()
-        f['volumes/distances'] = distances
-        f['volumes/distances'].attrs['resolution'] = voxel_size
-        f['volumes/distances'].attrs['offset'] = lsds_roi.get_offset()
-        f['volumes/seeds'] = seeds
-        f['volumes/seeds'].attrs['resolution'] = voxel_size
-        f['volumes/seeds'].attrs['offset'] = lsds_roi.get_offset()
+        # f['volumes/distances'] = distances
+        # f['volumes/distances'].attrs['resolution'] = voxel_size
+        # f['volumes/distances'].attrs['offset'] = lsds_roi.get_offset()
+        # f['volumes/seeds'] = seeds
+        # f['volumes/seeds'].attrs['resolution'] = voxel_size
+        # f['volumes/seeds'].attrs['offset'] = lsds_roi.get_offset()
         f['volumes/raw'] = raw
         f['volumes/raw'].attrs['resolution'] = voxel_size
         f['volumes/raw'].attrs['offset'] = raw_roi.get_offset()
@@ -66,13 +66,17 @@ if __name__ == "__main__":
         lsd_extractor,
         voxel_size=voxel_size)
 
-    for threshold in [-1000,-100,-10,-1,0,1]:
+    for threshold in [0]:
 
         agglomeration.merge_until(threshold)
         segmentation = agglomeration.get_segmentation()
 
-        ds_name = 'volumes/segmentation_%d'%threshold
         with h5py.File('test_real.hdf', 'r+') as f:
+            ds_name = 'volumes/segmentation_%d'%threshold
             f[ds_name] = segmentation
+            f[ds_name].attrs['resolution'] = voxel_size
+            f[ds_name].attrs['offset'] = lsds_roi.get_offset()
+            ds_name = 'volumes/lsds_%d'%threshold
+            f[ds_name] = agglomeration.get_lsds()
             f[ds_name].attrs['resolution'] = voxel_size
             f[ds_name].attrs['offset'] = lsds_roi.get_offset()
