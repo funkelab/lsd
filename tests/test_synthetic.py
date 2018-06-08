@@ -6,6 +6,7 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
 
 size = (1, 100, 100)
 
@@ -42,8 +43,7 @@ if __name__ == "__main__":
     agglomeration = lsd.LsdAgglomeration(
         fragments,
         predicted_lsds,
-        lsd_extractor,
-        keep_lsds=True)
+        lsd_extractor)
 
     # fragments and lsdss before merging
     segmentations = [np.array(agglomeration.get_segmentation()[0])]
