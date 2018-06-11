@@ -2,7 +2,6 @@ from agglomerate import LsdAgglomeration
 from peach import Coordinate, Roi, process_blockwise
 import logging
 import luigi
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -123,38 +122,29 @@ class ParallelLsdAgglomeration(object):
         read_roi_voxels = read_roi/self.voxel_size
         write_roi_voxels = write_roi/self.voxel_size
 
-        # get the subgraph to work on
+        # get the sub-{graph, fragments, LSDs} to work on
         rag = self.rag_provider[read_roi.to_slices()]
+        fragments = self.fragments[read_roi_voxels.to_slices()]
+        target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
 
         # agglomerate on a copy of the original RAG
         # (agglomeration changes the RAG)
-        merged_rag = rag.copy()
+        merge_rag = rag.copy()
 
-        # get currently connected componets
-        components = merged_rag.get_connected_components()
+        # contract previously merged nodes and fragments
+        merge_rag.contract_merged_nodes(self.fragments)
 
-        # replace each connected component by a single node
-        component_nodes = self.__contract_rag(merged_rag, components)
-
-        # get fragments slice
-        fragments = self.fragments[read_roi_voxels.to_slices()]
-
-        # relabel fragments of the same connected components to match merged RAG
-        fragments = self.__relabel(fragments, components, component_nodes)
-
-        # get LSDs slice
-        target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
-
+        # agglomerate to match target LSDs
         agglomeration = LsdAgglomeration(
             fragments,
             target_lsds,
             self.lsd_extractor,
             voxel_size=self.voxel_size,
-            rag=merged_rag)
+            rag=merge_rag)
         num_merged = agglomeration.merge_until(0)
 
         # mark edges in original RAG as 'merged'
-        rag.label_merged_edges(merged_rag)
+        rag.label_merged_edges(merge_rag)
 
         # mark the block as 'agglomerated'
         rag.set_edge_attributes('agglomerated', 1)
@@ -163,41 +153,3 @@ class ParallelLsdAgglomeration(object):
 
         # write back results (only within write_roi)
         rag.sync(write_roi)
-
-    def __contract_rag(self, rag, components):
-        '''Contract all nodes of one component into a single node, return the
-        single node for each component.'''
-
-        # initialize 'labels' attribute, needed by scikit
-        for node, data in rag.nodes_iter(data=True):
-            data['labels'] = [node]
-
-        component_nodes = []
-
-        for component in components:
-
-            for i in range(1, len(component)):
-                rag.merge_nodes(
-                    component[i - 1],
-                    component[i],
-                    # set default attributes for new edges
-                    weight_func=lambda _, _src, _dst, _n: {
-                        'merged': 0,
-                        'agglomerated': 0
-                    })
-
-            component_nodes.append(component[-1])
-
-        return component_nodes
-
-    def __relabel(self, array, components, component_labels):
-
-        values_map = np.arange(int(array.max() + 1), dtype=array.dtype)
-
-        for component, label in zip(components, component_labels):
-            for c in component:
-                if c < len(values_map):
-                    values_map[c] = label
-
-        return values_map[array]
-
