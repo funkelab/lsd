@@ -32,6 +32,21 @@ class Rag(skimage.future.graph.RAG):
 
         return [ list(component) for component in components ]
 
+    def label_merged_edges(self, merged_rag):
+        '''Set 'merged' to 1 for all edges that got merged in ``merged_rag``.
+
+        ``merged_rag`` should be a RAG obtained from agglomeration of this RAG,
+        where each node has an attribute 'labels' that stores a list of the
+        original nodes that make up the merged node.'''
+
+        for merged_node, data in merged_rag.nodes_iter(data=True):
+            for node in data['labels']:
+                self.node[node]['merged_node'] = merged_node
+
+        for u, v, data in self.edges_iter(data=True):
+            if self.node[u]['merged_node'] == self.node[v]['merged_node']:
+                data['merged'] = 1
+
     def copy(self):
         '''Return a deep copy of this RAG.'''
 
