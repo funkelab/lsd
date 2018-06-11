@@ -113,25 +113,31 @@ class LsdAgglomeration(object):
         for u in self.rag.nodes():
 
             logger.debug("Initializing node %d", u)
+            data = self.rag.node[u]
 
-            if 'roi' not in self.rag.node[u]:
+            if 'roi' not in data:
 
                 bbs = find_objects(self.fragments==u)
 
                 if len(bbs) == 0:
 
-                    self.rag.node[u]['roi'] = None
+                    data['roi'] = None
 
                 else:
 
                     assert len(bbs) == 1
                     roi = self.__slice_to_roi(bbs[0])
-                    self.rag.node[u]['roi'] = roi
+                    data['roi'] = roi
 
-            self.rag.node[u]['score'] = self.__compute_node_score(u)
-            self.rag.node[u]['labels'] = [u] # needed by scikit
+            data['score'] = self.__compute_node_score(u)
 
-            logger.debug("Node %d: %s", u, self.rag.node[u])
+            if 'labels' not in data:
+                data['labels'] = [u] # needed by scikit
+            else:
+                assert u in data['labels'], (
+                    "Labels list of a node has to contain the node itself.")
+
+            logger.debug("Node %d: %s", u, data)
 
         logger.info("Scoring initial edges...")
 
