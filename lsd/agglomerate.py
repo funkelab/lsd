@@ -360,6 +360,13 @@ class LsdAgglomeration(object):
         # since voxels outside of the nodes do not contribute, either
         change_roi = change_roi.intersect(roi_u.union(roi_v))
 
+        if change_roi.empty():
+            logger.warning(
+                "change ROI between %s and %s is empty: u=%s, v=%s, "
+                "u_grown=%s, v_grown=%s",
+                u, v, roi_u, roi_v, roi_u_grown, roi_v_grown)
+            return (None, None)
+
         # the context we need to compute LSDs in change_roi
         context_roi = change_roi.grow(context, context)
 
