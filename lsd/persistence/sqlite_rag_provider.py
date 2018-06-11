@@ -14,7 +14,9 @@ class SqliteSubRag(SubRag):
         self.filename = filename
         self.sync_edge_attributes = sync_edge_attributes
 
-    def sync(self):
+    def sync(self, roi):
+
+        logger.info("Writing back edge attributes in %s", roi)
 
         connection = sqlite3.connect(self.filename)
         c = connection.cursor()
@@ -31,8 +33,20 @@ class SqliteSubRag(SubRag):
             query = '''
                 UPDATE edges
                 SET %s
-                WHERE u == %d and v == %d
-            '''%(update, u, v)
+                WHERE u == %d AND v == %d
+                AND center_z >= %d AND center_z < %d
+                AND center_y >= %d AND center_y < %d
+                AND center_x >= %d AND center_x < %d
+            '''%(
+                update,
+                u, v,
+                roi.get_begin()[0],
+                roi.get_end()[0],
+                roi.get_begin()[1],
+                roi.get_end()[1],
+                roi.get_begin()[2],
+                roi.get_end()[2]
+            )
             logger.debug(query)
             c.execute(query)
 
@@ -103,12 +117,12 @@ class SqliteRagProvider(SharedRagProvider):
             return None
 
         if start is None:
-            return '%s < %f'%(value, stop)
+            return '%s < %d'%(value, stop)
 
         if stop is None:
-            return '%s >= %f'%(value, start)
+            return '%s >= %d'%(value, start)
 
-        return '%s BETWEEN %f AND %f'%(value, start, stop)
+        return '%s >= %d AND %s < %d'%(value, start, value, stop)
 
     def __getitem__(self, slices):
 

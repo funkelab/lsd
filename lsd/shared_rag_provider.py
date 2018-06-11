@@ -25,9 +25,10 @@ class SharedRagProvider(object):
 
 class SubRag(Rag):
 
-    def sync(self):
-        '''Synchronize modifications to node and edge attributes with the
-        persistency backend associated to this sub-RAG.'''
+    def sync(self, roi):
+        '''Write back modifications made to node and edge attributes with the
+        persistency backend associated to this sub-RAG. Restrict the sync to
+        the given ROI.'''
         raise RuntimeError("not implemented in %s"%self.name())
 
     def name(self):
