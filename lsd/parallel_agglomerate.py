@@ -145,10 +145,6 @@ class ParallelLsdAgglomeration(object):
         # get LSDs slice
         target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
 
-        logger.info("contracted RAG:")
-        for u, v, d in merged_rag.edges_iter(data=True):
-            logger.info("%s, %s, %s", u, v, d)
-
         agglomeration = LsdAgglomeration(
             fragments,
             target_lsds,
@@ -156,10 +152,6 @@ class ParallelLsdAgglomeration(object):
             voxel_size=self.voxel_size,
             rag=merged_rag)
         num_merged = agglomeration.merge_until(0)
-
-        logger.info("contracted RAG after agglomeration:")
-        for u, v, d in merged_rag.edges_iter(data=True):
-            logger.info("%s, %s, %s", u, v, d)
 
         # mark edges in original RAG as 'merged'
         rag.label_merged_edges(merged_rag)
