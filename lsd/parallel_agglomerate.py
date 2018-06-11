@@ -126,58 +126,73 @@ class ParallelLsdAgglomeration(object):
         # get the subgraph to work on
         rag = self.rag_provider[read_roi.to_slices()]
 
+        # agglomerate on a copy of the original RAG
+        # (agglomeration changes the RAG)
+        merged_rag = rag.copy()
+
         # get currently connected componets
-        components = rag.get_connected_components()
+        components = merged_rag.get_connected_components()
 
         # replace each connected component by a single node
-        component_nodes = self.__contract_rag(rag, components)
+        component_nodes = self.__contract_rag(merged_rag, components)
 
         # get fragments slice
         fragments = self.fragments[read_roi_voxels.to_slices()]
 
-        # relabel fragments of the same connected components to match RAG
+        # relabel fragments of the same connected components to match merged RAG
         fragments = self.__relabel(fragments, components, component_nodes)
 
         # get LSDs slice
         target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
 
-        logger.info("fragments: %s", fragments.shape)
-        logger.info("target_lsds: %s", target_lsds.shape)
+        logger.info("contracted RAG:")
+        for u, v, d in merged_rag.edges_iter(data=True):
+            logger.info("%s, %s, %s", u, v, d)
 
-        # agglomerate on a copy of the original RAG (agglomeration changes the
-        # RAG)
         agglomeration = LsdAgglomeration(
             fragments,
             target_lsds,
             self.lsd_extractor,
             voxel_size=self.voxel_size,
-            rag=rag.copy())
+            rag=merged_rag)
         num_merged = agglomeration.merge_until(0)
 
-        # TODO:
-        # * get record of merged edges
-        # * merge only edges inside write_roi
-        #   OR
-        #   set 'merged' attribute only for edges inside write_roi
+        logger.info("contracted RAG after agglomeration:")
+        for u, v, d in merged_rag.edges_iter(data=True):
+            logger.info("%s, %s, %s", u, v, d)
 
-        # for now, just mark the block as processed
+        # mark edges in original RAG as 'merged'
+        rag.label_merged_edges(merged_rag)
+
+        # mark the block as 'agglomerated'
         rag.set_edge_attributes('agglomerated', 1)
 
         logger.info("merged %d edges", num_merged)
 
-        # write back results
-        rag.sync()
+        # write back results (only within write_roi)
+        rag.sync(write_roi)
 
     def __contract_rag(self, rag, components):
         '''Contract all nodes of one component into a single node, return the
         single node for each component.'''
+
+        # initialize 'labels' attribute, needed by scikit
+        for node, data in rag.nodes_iter(data=True):
+            data['labels'] = [node]
 
         component_nodes = []
 
         for component in components:
 
             for i in range(1, len(component)):
-                rag.merge_nodes(component[i - 1], component[i])
+                rag.merge_nodes(
+                    component[i - 1],
+                    component[i],
+                    # set default attributes for new edges
+                    weight_func=lambda _, _src, _dst, _n: {
+                        'merged': 0,
+                        'agglomerated': 0
+                    })
 
             component_nodes.append(component[-1])
 
@@ -193,3 +208,4 @@ class ParallelLsdAgglomeration(object):
                     values_map[c] = label
 
         return values_map[array]
+
