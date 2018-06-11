@@ -11,6 +11,7 @@ setup_interface_logging.has_run = True
 
 logging.basicConfig(level=logging.INFO)
 # logging.getLogger('lsd.persistence.sqlite_rag_provider').setLevel(logging.DEBUG)
+# logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
 
 size = (1, 200, 200)
 
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     # intersect gt and fragments to get an oversegmentation
     fragments = gt + (fragments + 1)*gt.max()
 
-    lsd_extractor = lsd.LsdExtractor(sigma=(0.0, 10.0, 10.0))
+    lsd_extractor = lsd.LsdExtractor(sigma=(0.1, 10.0, 10.0))
     predicted_lsds = lsd_extractor.get_descriptors(gt)
 
     rag_provider = lsd.persistence.SqliteRagProvider.from_fragments(
@@ -51,7 +52,7 @@ if __name__ == "__main__":
         fragments,
         predicted_lsds,
         lsd_extractor,
-        block_write_size=(1, 10, 10),
+        block_write_size=(1, 50, 50),
         block_done_function=block_done,
         num_workers=1)
 
