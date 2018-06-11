@@ -366,6 +366,12 @@ class LsdAgglomeration(object):
         # this can again be limited to the union of the node ROIs
         context_roi = context_roi.intersect(roi_u.union(roi_v))
 
+        # finally, ensure that we deliver multiples of the downsampling factor
+        # used by the lsd_extractor
+        dims = change_roi.dims()
+        change_roi = change_roi.snap_to_grid((self.lsd_extractor.downsample,)*dims)
+        context_roi = context_roi.snap_to_grid((self.lsd_extractor.downsample,)*dims)
+
         return (change_roi, context_roi)
 
     def __slice_to_roi(self, slices):

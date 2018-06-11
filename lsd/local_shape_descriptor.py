@@ -149,7 +149,9 @@ class LsdExtractor(object):
         sub_roi = roi/df
         assert sub_roi*df == roi, (
             "Segmentation shape %s is not a multiple of downsampling factor "
-            "%d."%(segmentation.shape, self.downsample))
+            "%d (sub_roi=%s, roi=%s)."%(
+                segmentation.shape, self.downsample,
+                sub_roi, roi))
         sub_voxel_size = tuple(v*df for v in voxel_size)
         sub_sigma_voxel = tuple(s/v for s, v in zip(self.sigma, sub_voxel_size))
         logger.debug("Downsampled shape: %s", sub_shape)
