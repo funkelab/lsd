@@ -18,7 +18,7 @@ class SqliteSubRag(SubRag):
 
         logger.info("Writing back edge attributes in %s", roi)
 
-        connection = sqlite3.connect(self.filename)
+        connection = sqlite3.connect(self.filename, timeout=30.0)
         c = connection.cursor()
 
         for u, v, data in self.edges_iter(data=True):
