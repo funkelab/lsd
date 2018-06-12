@@ -140,7 +140,8 @@ class ParallelLsdAgglomeration(object):
             target_lsds,
             self.lsd_extractor,
             voxel_size=self.voxel_size,
-            rag=merge_rag)
+            rag=merge_rag,
+            log_prefix='%s: '%write_roi)
         num_merged = agglomeration.merge_until(0)
 
         # mark edges in original RAG as 'merged'
