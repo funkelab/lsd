@@ -42,7 +42,8 @@ class LsdAgglomeration(object):
             target_lsds,
             lsd_extractor,
             voxel_size=None,
-            rag=None):
+            rag=None,
+            log_prefix=''):
 
         self.segmentation = np.array(fragments)
         self.lsds = np.zeros_like(target_lsds)
@@ -51,6 +52,7 @@ class LsdAgglomeration(object):
         self.lsd_extractor = lsd_extractor
         self.rag = rag
         self.context = lsd_extractor.get_context()
+        self.log_prefix = log_prefix
 
         if voxel_size is None:
             self.voxel_size = (1,)*len(fragments.shape)
@@ -64,7 +66,7 @@ class LsdAgglomeration(object):
         they decrease the distance to ``target_lsds``, a threshold of 0 should
         be optimal.'''
 
-        logger.info("Merging until %f...", threshold)
+        self.__log_info("Merging until %f...", threshold)
 
         merge_func = lambda _, src, dst: self.__merge_nodes(src, dst)
         weight_func = lambda _g, _s, u, v: self.__score_merge(u, v)
@@ -79,7 +81,7 @@ class LsdAgglomeration(object):
             max_merges=max_merges,
             return_segmenation=False)
 
-        logger.info("Finished merging")
+        self.__log_info("Finished merging")
 
         return num_merges
 
@@ -98,21 +100,21 @@ class LsdAgglomeration(object):
 
         if self.rag is None:
 
-            logger.info("Extracting RAG from fragments...")
+            self.__log_info("Extracting RAG from fragments...")
             self.rag = RAG(self.fragments, connectivity=2)
 
-        logger.info(
+        self.__log_info(
             "RAG contains %d nodes and %d edges",
             len(self.rag.nodes()),
             len(self.rag.edges()))
 
-        logger.info("Computing LSDs for initial fragments...")
+        self.__log_info("Computing LSDs for initial fragments...")
 
         dims = len(self.segmentation.shape)
 
         for u in self.rag.nodes():
 
-            logger.debug("Initializing node %d", u)
+            self.__log_debug("Initializing node %d", u)
             data = self.rag.node[u]
 
             if 'roi' not in data:
@@ -137,12 +139,12 @@ class LsdAgglomeration(object):
                 assert u in data['labels'], (
                     "Labels list of a node has to contain the node itself.")
 
-            logger.debug("Node %d: %s", u, data)
+            self.__log_debug("Node %d: %s", u, data)
 
-        logger.info("Scoring initial edges...")
+        self.__log_info("Scoring initial edges...")
 
         for (u, v) in self.rag.edges():
-            logger.debug("Initializing edge (%d, %d)", u, v)
+            self.__log_debug("Initializing edge (%d, %d)", u, v)
             score = self.__score_merge(u, v)
             self.rag[u][v]['weight'] = score['weight']
 
@@ -155,7 +157,7 @@ class LsdAgglomeration(object):
         if weight is None:
             weight = np.nan
 
-        logger.debug("Scoring merge between %d and %d with %f", u, v, weight)
+        self.__log_debug("Scoring merge between %d and %d with %f", u, v, weight)
 
         return {'weight': weight}
 
@@ -241,10 +243,14 @@ class LsdAgglomeration(object):
             self.rag.node[u]['score'] +
             self.rag[u][v]['weight'])
 
-        logger.info(
+        self.__log_info(
             "Merged %d into %d with score %f",
             u, v, self.rag[u][v]['weight'])
-        logger.debug(
+        self.__log_debug(
+            " -> merge fragments %s and %s",
+            self.rag.node[u]['labels'],
+            self.rag.node[v]['labels'])
+        self.__log_debug(
             "Updated score of %d (merged with %d) to %f",
             u, v, self.rag.node[v]['score'])
 
@@ -311,7 +317,7 @@ class LsdAgglomeration(object):
 
         assert lsds_separate.shape == lsds_merged.shape
 
-        logger.debug(
+        self.__log_debug(
             "Edge score for (%d, %d) is %f - %f = %f",
             u, v, score_merged, score_separate,
             score_merged - score_separate)
@@ -361,7 +367,7 @@ class LsdAgglomeration(object):
         change_roi = change_roi.intersect(roi_u.union(roi_v))
 
         if change_roi.empty():
-            logger.warning(
+            self.__log_warning(
                 "change ROI between %s and %s is empty: u=%s, v=%s, "
                 "u_grown=%s, v_grown=%s",
                 u, v, roi_u, roi_v, roi_u_grown, roi_v_grown)
@@ -390,3 +396,12 @@ class LsdAgglomeration(object):
         roi = roi.snap_to_grid((self.lsd_extractor.downsample,)*roi.dims())
 
         return roi
+
+    def __log_debug(self, message, *args):
+        logger.debug(self.log_prefix + message, *args)
+
+    def __log_info(self, message, *args):
+        logger.info(self.log_prefix + message, *args)
+
+    def __log_warning(self, message, *args):
+        logger.warning(self.log_prefix + message, *args)
