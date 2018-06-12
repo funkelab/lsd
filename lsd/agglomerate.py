@@ -153,10 +153,6 @@ class LsdAgglomeration(object):
         edge.'''
 
         weight = self.__compute_edge_score(u, v)
-
-        if weight is None:
-            weight = np.nan
-
         self.__log_debug("Scoring merge between %d and %d with %f", u, v, weight)
 
         return {'weight': weight}
@@ -275,7 +271,7 @@ class LsdAgglomeration(object):
         (change_roi, context_roi) = self.__get_lsds_edge_rois(u, v)
 
         if change_roi is None:
-            return None
+            return 0
 
         # get slice of segmentation for context_roi (make a copy, since we
         # change it later)
