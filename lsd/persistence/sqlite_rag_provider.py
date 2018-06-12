@@ -7,18 +7,22 @@ logger = logging.getLogger(__name__)
 
 class SqliteSubRag(SubRag):
 
-    def __init__(self, filename, sync_edge_attributes):
+    def __init__(self, filename, mode, sync_edge_attributes):
 
         super(SubRag, self).__init__()
 
         self.filename = filename
+        self.mode = mode
         self.sync_edge_attributes = sync_edge_attributes
 
     def sync(self, roi):
 
+        if self.mode is not 'w':
+            raise RuntimeError("Trying to write to write-only DB")
+
         logger.info("Writing back edge attributes in %s", roi)
 
-        connection = sqlite3.connect(self.filename, timeout=30.0)
+        connection = sqlite3.connect(self.filename, timeout=300.0)
         c = connection.cursor()
 
         for u, v, data in self.edges_iter(data=True):
@@ -84,32 +88,37 @@ class SqliteRagProvider(SharedRagProvider):
         '''Create a SqliteRagProvider, populated with a RAG extracted from a
         label image.'''
 
-        rag = SqliteRagProvider(filename)
+        rag = SqliteRagProvider(filename, 'w')
         rag.__write_rag(SubRag(fragments, connectivity=connectivity))
 
         return rag
 
-    def __init__(self, filename):
+    def __init__(self, filename, mode):
 
         self.filename = filename
+        self.mode = mode
 
-        connection = sqlite3.connect(self.filename)
-        c = connection.cursor()
-        try:
-            c.execute('''
-                DROP TABLE edges
-            ''')
-        except sqlite3.OperationalError:
-            pass
+        if self.mode == 'w':
 
-        attributes = ', '.join([
-            '%s %s'%(name, self.edge_attribute_dtypes[name])
-            for name in self.edge_attributes
-        ])
-        c.execute('CREATE TABLE edges (%s)'%attributes)
+            # start with a fresh DB
 
-        connection.commit()
-        connection.close()
+            connection = sqlite3.connect(self.filename)
+            c = connection.cursor()
+            try:
+                c.execute('''
+                    DROP TABLE edges
+                ''')
+            except sqlite3.OperationalError:
+                pass
+
+            attributes = ', '.join([
+                '%s %s'%(name, self.edge_attribute_dtypes[name])
+                for name in self.edge_attributes
+            ])
+            c.execute('CREATE TABLE edges (%s)'%attributes)
+
+            connection.commit()
+            connection.close()
 
     def __slice_condition(self, value, start, stop):
 
@@ -163,7 +172,7 @@ class SqliteRagProvider(SharedRagProvider):
         ]
         logger.debug("read edges: %s", edge_list)
 
-        graph = SqliteSubRag(self.filename, self.sync_edge_attributes)
+        graph = SqliteSubRag(self.filename, self.mode, self.sync_edge_attributes)
         graph.add_edges_from(edge_list)
 
         return graph
@@ -177,6 +186,9 @@ class SqliteRagProvider(SharedRagProvider):
     def __write_rag(self, rag):
         '''Write a complete RAG. This replaces whatever was stored in the DB
         before.'''
+
+        if self.mode is not 'w':
+            raise RuntimeError("Trying to write to write-only DB")
 
         connection = sqlite3.connect(self.filename)
         c = connection.cursor()
