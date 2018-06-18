@@ -1,7 +1,6 @@
 from agglomerate import LsdAgglomeration
-from peach import Coordinate, Roi, process_blockwise
+from peach import Coordinate, Roi, run_with_dask
 import logging
-import luigi
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +104,7 @@ class ParallelLsdAgglomeration(object):
         assert (write_roi/voxel_size)*voxel_size == write_roi, (
             "read_roi needs to be a multiple of voxel_size")
 
-        process_blockwise(
+        run_with_dask(
             total_roi,
             read_roi,
             write_roi,
