@@ -57,7 +57,7 @@ class Rag(skimage.future.graph.RAG):
     def set_edge_attributes(self, key, value):
         '''Set all the attribute of all edges to the given value.'''
 
-        for _u, _v, data in self.edges_iter(data=True):
+        for _u, _v, data in self.edges(data=True):
             data[key] = value
 
     def get_connected_components(self):
@@ -67,7 +67,7 @@ class Rag(skimage.future.graph.RAG):
         merge_graph = Graph()
         merge_graph.add_nodes_from(self.nodes())
 
-        for u, v, data in self.edges_iter(data=True):
+        for u, v, data in self.edges(data=True):
             if data['merged']:
                 merge_graph.add_edge(u, v)
 
@@ -82,11 +82,11 @@ class Rag(skimage.future.graph.RAG):
         this RAG, where each node has an attribute 'labels' that stores a list
         of the original nodes that make up the merged node.'''
 
-        for merged_node, data in merged_rag.nodes_iter(data=True):
+        for merged_node, data in merged_rag.nodes(data=True):
             for node in data['labels']:
                 self.node[node]['merged_node'] = merged_node
 
-        for u, v, data in self.edges_iter(data=True):
+        for u, v, data in self.edges(data=True):
             if self.node[u]['merged_node'] == self.node[v]['merged_node']:
                 data['merged'] = 1
 
@@ -133,7 +133,7 @@ class Rag(skimage.future.graph.RAG):
                 center_of_mass(fragments, fragments, self.nodes()))
         }
 
-        for u, v, data in self.edges_iter(data=True):
+        for u, v, data in self.edges(data=True):
 
             center_u = fragment_centers[u]
             center_v = fragment_centers[v]
@@ -149,7 +149,7 @@ class Rag(skimage.future.graph.RAG):
 
     def __add_esential_edge_attributes(self):
 
-        for u, v, data in self.edges_iter(data=True):
+        for u, v, data in self.edges(data=True):
 
             if 'merged' not in data:
                 data['merged'] = 0
@@ -159,7 +159,7 @@ class Rag(skimage.future.graph.RAG):
 
     def __add_esential_node_attributes(self):
 
-        for node, data in self.nodes_iter(data=True):
+        for node, data in self.nodes(data=True):
 
             if 'labels' not in data:
                 data['labels'] = [node]

@@ -25,7 +25,7 @@ class SqliteSubRag(SubRag):
         connection = sqlite3.connect(self.filename, timeout=300.0)
         c = connection.cursor()
 
-        for u, v, data in self.edges_iter(data=True):
+        for u, v, data in self.edges(data=True):
 
             u, v = min(u, v), max(u, v)
 
@@ -194,7 +194,7 @@ class SqliteRagProvider(SharedRagProvider):
         c = connection.cursor()
         c.execute('DELETE FROM edges')
 
-        for u, v, data in rag.edges_iter(data=True):
+        for u, v, data in rag.edges(data=True):
 
             u, v = min(u, v), max(u, v)
 
