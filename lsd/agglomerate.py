@@ -1,3 +1,9 @@
+# this seems necessary to prevent matplotlib from trying to find X11 libraries
+# (matplotlib unfortunately gets imported later on by skimage.future, although
+# we don't need it)
+import matplotlib
+matplotlib.use('Agg')
+
 from scipy.ndimage.measurements import find_objects
 from skimage.future.graph import RAG
 from graph_merge import merge_hierarchical
