@@ -20,6 +20,9 @@ if __name__ == "__main__":
         affs = f['volumes/labels/pred_affinities'][:]
         affs_offset = f['volumes/labels/pred_affinities'].attrs['offset']
 
+        gt = f['volumes/labels/neuron_ids'][:]
+        gt_offset = f['volumes/labels/neuron_ids'].attrs['offset']
+
     lsds_offset = gp.Coordinate(lsds_offset)
     affs_offset = gp.Coordinate(affs_offset)
     voxel_size = gp.Coordinate(voxel_size)
@@ -44,7 +47,7 @@ if __name__ == "__main__":
     voxel_size = (8, 8, 8)
 
     with h5py.File('test_real.hdf', 'w') as f:
-        f['volumes/lsds'] = lsds
+        f['volumes/lsds'] = lsds[0:3]
         f['volumes/lsds'].attrs['resolution'] = voxel_size
         f['volumes/lsds'].attrs['offset'] = lsds_roi.get_offset()
         f['volumes/fragments'] = fragments
@@ -59,6 +62,12 @@ if __name__ == "__main__":
         f['volumes/raw'] = raw
         f['volumes/raw'].attrs['resolution'] = voxel_size
         f['volumes/raw'].attrs['offset'] = raw_roi.get_offset()
+        f['volumes/affs'] = affs
+        f['volumes/affs'].attrs['resolution'] = voxel_size
+        f['volumes/affs'].attrs['offset'] = affs_offset
+        f['volumes/neuron_ids'] = gt
+        f['volumes/neuron_ids'].attrs['resolution'] = voxel_size
+        f['volumes/neuron_ids'].attrs['offset'] = gt_offset
 
     agglomeration = lsd.LsdAgglomeration(
         fragments,
@@ -77,6 +86,6 @@ if __name__ == "__main__":
             f[ds_name].attrs['resolution'] = voxel_size
             f[ds_name].attrs['offset'] = lsds_roi.get_offset()
             ds_name = 'volumes/lsds_%d'%threshold
-            f[ds_name] = agglomeration.get_lsds()
+            f[ds_name] = agglomeration.get_lsds()[0:3]
             f[ds_name].attrs['resolution'] = voxel_size
             f[ds_name].attrs['offset'] = lsds_roi.get_offset()
