@@ -57,9 +57,45 @@ class SqliteSubRag(SubRag):
         connection.commit()
         connection.close()
 
+    def sync_nodes(self):
+
+        if self.read_only:
+            raise RuntimeError("Trying to write to read-only DB")
+
+        logger.info("Writing back nodes and their attributes")
+
+        connection = sqlite3.connect(self.filename, timeout=300.0)
+        c = connection.cursor()
+
+        for node, data in self.nodes(data=True):
+
+            values = {
+                'id': node
+            }
+            values.update(data)
+
+            names = ', '.join(SqliteRagProvider.node_attributes)
+            values = ', '.join([
+                str(values[key])
+                for key in SqliteRagProvider.node_attributes
+            ])
+
+            query = 'INSERT INTO nodes (%s) VALUES (%s)'%(names, values)
+            logger.debug(query)
+            c.execute(query)
+
+        connection.commit()
+        connection.close()
+
 class SqliteRagProvider(SharedRagProvider):
     '''A shared region adjacency graph stored in an SQLite file.
     '''
+
+    # all node_attributes
+    node_attributes = [
+        'id',
+        'center_x', 'center_y', 'center_z'
+    ]
 
     # all edge attributes
     edge_attributes = [
@@ -72,6 +108,14 @@ class SqliteRagProvider(SharedRagProvider):
     # edge atttributes that should be written back by
     # SubRag.sync_edge_attributes()
     sync_edge_attributes = ['merged', 'agglomerated']
+
+    # SQL datatypes for each edge attribute
+    node_attribute_dtypes = {
+        'id': 'bigint',
+        'center_x': 'real',
+        'center_y': 'real',
+        'center_z': 'real'
+    }
 
     # SQL datatypes for each edge attribute
     edge_attribute_dtypes = {
@@ -113,7 +157,27 @@ class SqliteRagProvider(SharedRagProvider):
                 # edges did not exist
                 pass
 
+            try:
+                c.execute('''
+                    DROP TABLE nodes
+                ''')
+            except sqlite3.OperationalError:
+                # nodes did not exist
+                pass
+
         # make sure requred tables are present
+        try:
+
+            attributes = ', '.join([
+                '%s %s'%(name, self.node_attribute_dtypes[name])
+                for name in self.node_attributes
+            ])
+            c.execute('CREATE TABLE nodes (%s)'%attributes)
+
+        except sqlite3.OperationalError:
+            # table did already exist
+            pass
+
         try:
 
             attributes = ', '.join([
@@ -158,6 +222,35 @@ class SqliteRagProvider(SharedRagProvider):
 
         connection = sqlite3.connect(self.filename)
         c = connection.cursor()
+
+        graph = SqliteSubRag(self.filename, self.read_only, self.sync_edge_attributes)
+
+        node_query = '''
+            SELECT * FROM nodes %s
+        '''%contains_condition
+        logger.debug(node_query)
+        rows = c.execute(node_query)
+
+        # convert rows into dictionary
+        rows = [
+            {
+                name: row[i]
+                for i, name in enumerate(self.node_attributes)
+            }
+            for row in rows
+        ]
+
+        logger.info("found %d nodes", len(rows))
+
+        # create a list of nodes and their attributes
+        node_list = [
+            (row['id'], self.__remove_keys(row, ['id']))
+            for row in rows
+        ]
+        logger.debug("read nodes: %s", node_list)
+
+        graph.add_nodes_from(node_list)
+
         edge_query = '''
             SELECT * FROM edges %s
         '''%contains_condition
@@ -181,7 +274,6 @@ class SqliteRagProvider(SharedRagProvider):
         ]
         logger.debug("read edges: %s", edge_list)
 
-        graph = SqliteSubRag(self.filename, self.mode, self.sync_edge_attributes)
         graph.add_edges_from(edge_list)
 
         return graph
