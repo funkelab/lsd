@@ -31,5 +31,9 @@ class SubRag(Rag):
         the given ROI.'''
         raise RuntimeError("not implemented in %s"%self.name())
 
+    def sync_nodes(self):
+        '''Write nodes and their attributes.'''
+        raise RuntimeError("not implemented in %s"%self.name())
+
     def name(self):
         return type(self).__name__
