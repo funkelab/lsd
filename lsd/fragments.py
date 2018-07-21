@@ -18,22 +18,20 @@ def watershed(lsds, sigma, return_distances=False, return_seeds=False):
 
     logger.info("Found %d fragments", n)
 
-    ret = mahotas.cwatershed(boundary_distances, seeds).astype(np.uint64)
+    fragments = mahotas.cwatershed(1.0 - boundary_distances, seeds)
 
-    if return_distances or return_seeds:
+    ret = (fragments.astype(np.uint64), n)
+    if return_distances:
+        ret = ret + (boundary_distances,)
 
-        ret = (ret,)
-        if return_distances:
-            ret = ret + (boundary_distances,)
-        if return_seeds:
-            ret = ret + (seeds.astype(np.uint64),)
+    if return_seeds:
+        ret = ret + (seeds.astype(np.uint64),)
 
     return ret
 
 def watershed_from_affinities(affs, return_distances=False, return_seeds=False):
-    '''Extract initial fragments from local shape descriptors ``lsds`` using a
-    watershed transform. This assumes that the first three entries of
-    ``lsds`` for each voxel are vectors pointing towards the center.'''
+    '''Extract initial fragments from affinities using a watershed
+    transform.'''
 
     boundary_mask = np.mean(affs, axis=0)>0.5
     boundary_distances = distance_transform_edt(boundary_mask)
@@ -46,14 +44,13 @@ def watershed_from_affinities(affs, return_distances=False, return_seeds=False):
 
     logger.info("Found %d fragments", n)
 
-    ret = mahotas.cwatershed(1.0 - boundary_distances, seeds).astype(np.uint64)
+    fragments = mahotas.cwatershed(1.0 - boundary_distances, seeds)
 
-    if return_distances or return_seeds:
+    ret = (fragments.astype(np.uint64), n)
+    if return_distances:
+        ret = ret + (boundary_distances,)
 
-        ret = (ret,)
-        if return_distances:
-            ret = ret + (boundary_distances,)
-        if return_seeds:
-            ret = ret + (seeds.astype(np.uint64),)
+    if return_seeds:
+        ret = ret + (seeds.astype(np.uint64),)
 
     return ret
