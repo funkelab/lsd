@@ -152,4 +152,4 @@ class ParallelLsdAgglomeration(object):
         logger.info("merged %d edges", num_merged)
 
         # write back results (only within write_roi)
-        rag.sync(write_roi)
+        rag.sync_edge_attributes(write_roi)
