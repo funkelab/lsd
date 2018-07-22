@@ -1,5 +1,6 @@
 from lsd import SharedRagProvider, SubRag
 from networkx.convert import to_dict_of_dicts
+from peach import Coordinate
 import sqlite3
 import logging
 
@@ -14,6 +15,53 @@ class SqliteSubRag(SubRag):
         self.filename = filename
         self.read_only = read_only
         self.sync_edge_attributes = sync_edge_attributes
+
+    def sync_edges(self, roi):
+
+        if self.read_only:
+            raise RuntimeError("Trying to write to read-only DB")
+
+        logger.debug("Writing edges in %s", roi)
+
+        connection = sqlite3.connect(self.filename, timeout=300.0)
+        c = connection.cursor()
+
+        for u, v, data in self.edges(data=True):
+
+            u, v = min(u, v), max(u, v)
+
+            min_node = self.node[u]
+            min_node_center = Coordinate((
+                min_node['center_z'],
+                min_node['center_y'],
+                min_node['center_x']))
+
+            # only store edges that are associated to the given ROI
+            if not roi.contains(min_node_center):
+                continue
+
+            values = {
+                'u': u,
+                'v': v,
+                # TODO: remove when schema changes
+                'center_z': 0,
+                'center_y': 0,
+                'center_x': 0,
+            }
+            values.update(data)
+
+            names = ', '.join(SqliteRagProvider.edge_attributes)
+            values = ', '.join([
+                str(values[key])
+                for key in SqliteRagProvider.edge_attributes
+            ])
+
+            query = 'INSERT INTO edges (%s) VALUES (%s)'%(names, values)
+            logger.debug(query)
+            c.execute(query)
+
+        connection.commit()
+        connection.close()
 
     def sync_edge_attributes(self, roi):
 
