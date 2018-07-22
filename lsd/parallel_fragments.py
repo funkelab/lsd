@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 
 def parallel_watershed(
         affs,
-        block_size,
         rag_provider,
+        block_size,
+        context,
         fragments_out,
-        num_workers,
-        context=None):
+        num_workers):
     '''Extract fragments from affinities using watershed.
 
     Args:
@@ -22,15 +22,19 @@ def parallel_watershed(
 
             A dataset that supports slicing to get affinities.
 
+        rag_provider (`class:SharedRagProvider`):
+
+            A RAG provider to write nodes for extracted fragments to. This does
+            not yet add adjacency edges, for that, an agglomeration method
+            should be called after this function.
+
         block_size (``tuple`` of ``int``):
 
             The size of the blocks to process in parallel in voxels.
 
-        rag_provider (`class:SharedRagProvider`):
+        context (``tuple`` of ``int``):
 
-            A RAG provider to write nodes for extracted fragments to. This does
-            not yet add adjacency edges, for that, `fun:parallel_rag` should be
-            called after this function.
+            The context to consider for fragment extraction, in voxels.
 
         fragments_out (array-like):
 
@@ -40,11 +44,6 @@ def parallel_watershed(
         num_workers (``int``):
 
             The number of parallel workers.
-
-        context (``tuple`` of ``int``, optional):
-
-            The context to consider for fragment extraction, in voxels.
-            Defaults to 0.
     '''
 
     assert fragments_out.dtype == np.uint64
