@@ -13,6 +13,12 @@ class SharedRagProvider(object):
 
         # sub_rag should inherit from SubRag
 
+        # write nodes
+        sub_rag.sync_nodes()
+
+        # write edges
+        sub_rag.sync_edges()
+
         # write changes made edge attributes
         sub_rag.sync_edge_attributes()
     '''
@@ -24,6 +30,11 @@ class SharedRagProvider(object):
         return type(self).__name__
 
 class SubRag(Rag):
+
+    def sync_edges(self, roi):
+        '''Write edges and their attributes. Restrict the sync to the given
+        ROI.'''
+        raise RuntimeError("not implemented in %s"%self.name())
 
     def sync_edge_attributes(self, roi):
         '''Write back modifications made to edge attributes with the
