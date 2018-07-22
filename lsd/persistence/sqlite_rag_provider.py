@@ -299,9 +299,11 @@ class SqliteRagProvider(SharedRagProvider):
 
         graph.add_nodes_from(node_list)
 
+        nodes_condition = 'WHERE u in (%s)'%', '.join(
+            '%d'%u for u in graph.nodes())
         edge_query = '''
             SELECT * FROM edges %s
-        '''%contains_condition
+        '''%nodes_condition
         logger.debug(edge_query)
         rows = c.execute(edge_query)
 
