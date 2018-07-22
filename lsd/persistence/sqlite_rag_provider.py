@@ -20,7 +20,7 @@ class SqliteSubRag(SubRag):
         if self.read_only:
             raise RuntimeError("Trying to write to read-only DB")
 
-        logger.info("Writing back edge attributes in %s", roi)
+        logger.debug("Writing back edge attributes in %s", roi)
 
         connection = sqlite3.connect(self.filename, timeout=300.0)
         c = connection.cursor()
@@ -62,7 +62,7 @@ class SqliteSubRag(SubRag):
         if self.read_only:
             raise RuntimeError("Trying to write to read-only DB")
 
-        logger.info("Writing back nodes and their attributes")
+        logger.debug("Writing back nodes and their attributes")
 
         connection = sqlite3.connect(self.filename, timeout=300.0)
         c = connection.cursor()
@@ -240,7 +240,7 @@ class SqliteRagProvider(SharedRagProvider):
             for row in rows
         ]
 
-        logger.info("found %d nodes", len(rows))
+        logger.debug("found %d nodes", len(rows))
 
         # create a list of nodes and their attributes
         node_list = [
