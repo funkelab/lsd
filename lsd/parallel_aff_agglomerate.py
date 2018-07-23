@@ -1,4 +1,5 @@
 from .labels import relabel
+from .merge_tree import MergeTree
 import logging
 import numpy as np
 import peach
@@ -133,37 +134,38 @@ def agglomerate_in_block(
             fragments=fragments_relabelled,
             scoring_function=merge_function,
             discretize_queue=256,
+            return_merge_history=True,
             return_region_graph=True)
 
     # add edges to RAG
-    _, initial_rag = generator.next()
+    _, _, initial_rag = generator.next()
     for edge in initial_rag:
         u, v = fragment_relabel_map[edge['u']], fragment_relabel_map[edge['v']]
         # this might overwrite already existing edges from neighboring blocks,
         # but that's fine, we only write attributes for edges within read_roi
-        rag.add_edge(u, v, {'merged': False, 'agglomerated': True})
+        rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
 
     # agglomerate fragments using affs
-    segmentation, final_rag = generator.next()
+    segmentation, merge_history, _ = generator.next()
 
-    # map fragments to segments
-    logger.debug("mapping fragments to segments...")
-    stacked = np.stack([fragments.flatten(), segmentation.flatten()])
-    fragment_segment_pairs = np.unique(stacked, axis=1).transpose()
-    fragment_to_segment = {}
-    for fragment, segment in fragment_segment_pairs:
-        fragment_to_segment[fragment] = segment
+    # create a merge tree from the merge history
+    merge_tree = MergeTree(fragment_relabel_map)
+    for merge in merge_history:
 
-    # mark edges in original RAG as 'merged'
+        a, b, c, score = merge['a'], merge['b'], merge['c'], merge['score']
+        merge_tree.merge(
+            fragment_relabel_map[a],
+            fragment_relabel_map[b],
+            fragment_relabel_map[c],
+            score)
+
+    # mark edges in original RAG with score at time of merging
     logger.debug("marking merged edges...")
     num_merged = 0
     for u, v, data in rag.edges(data=True):
-        if (
-                # there might be nodes in the RAG that are not in the fragments
-                u in fragment_to_segment and
-                v in fragment_to_segment and
-                fragment_to_segment[u] == fragment_to_segment[v]):
-            data['merged'] = True
+        merge_score = merge_tree.find_merge(u, v)
+        data['merge_score'] = merge_score
+        if merge_score is not None:
             num_merged += 1
 
     logger.info("merged %d edges", num_merged)

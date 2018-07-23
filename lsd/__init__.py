@@ -1,5 +1,6 @@
 from agglomerate import LsdAgglomeration
 from local_shape_descriptor import LsdExtractor
+from merge_tree import MergeTree
 from parallel_aff_agglomerate import parallel_aff_agglomerate
 from parallel_fragments import parallel_watershed
 from parallel_lsd_agglomerate import ParallelLsdAgglomeration

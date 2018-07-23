@@ -9,9 +9,9 @@ class Rag(skimage.future.graph.RAG):
 
     Edge attributes:
 
-        merged (int):
+        merge_score (float or None):
 
-            Either 0 or 1, indicates whether an edge was selected for merging.
+            The score at which a given edge was merged.
 
         agglomerated (int):
 
@@ -60,45 +60,33 @@ class Rag(skimage.future.graph.RAG):
         for _u, _v, data in self.edges(data=True):
             data[key] = value
 
-    def get_connected_components(self):
+    def get_connected_components(self, threshold):
         '''Get all connected components in the RAG, as indicated by the
-        'merged' attribute of edges.'''
+        'merge_score' attribute of edges.'''
 
         merge_graph = Graph()
         merge_graph.add_nodes_from(self.nodes())
 
         for u, v, data in self.edges(data=True):
-            if data['merged']:
+            if data['merge_score'] is not None and data['merge_score'] <= threshold:
                 merge_graph.add_edge(u, v)
 
         components = connected_components(merge_graph)
 
         return [ list(component) for component in components ]
 
-    def label_merged_edges(self, merged_rag):
-        '''Set 'merged' to 1 for all edges that got merged in ``merged_rag``.
+    def contract_merged_nodes(self, threshold, fragments=None):
+        '''Contract this RAG by merging all edges under the given threshold.
 
-        ``merged_rag`` should be a RAG obtained from agglomeration a copy of
-        this RAG, where each node has an attribute 'labels' that stores a list
-        of the original nodes that make up the merged node.'''
-
-        for merged_node, data in merged_rag.nodes(data=True):
-            for node in data['labels']:
-                self.node[node]['merged_node'] = merged_node
-
-        for u, v, data in self.edges(data=True):
-            if self.node[u]['merged_node'] == self.node[v]['merged_node']:
-                data['merged'] = 1
-
-    def contract_merged_nodes(self, fragments=None):
-        '''Contract this RAG by merging all edges that have their 'merged'
-        attribute set to 1.
-
-        This will create new edges that will have only ``merged`` and
+        This will create new edges that will have only ``merge_score`` and
         ``agglomerated`` attributes, set to 0. Other edge attributes will be
         lost.
 
         Args:
+
+            threshold (``float``):
+
+                The threshold under which to consider edges as merged.
 
             fragments (``ndarray``, optional):
 
@@ -107,7 +95,7 @@ class Rag(skimage.future.graph.RAG):
         '''
 
         # get currently connected componets
-        components = self.get_connected_components()
+        components = self.get_connected_components(threshold)
 
         # replace each connected component by a single node
         component_nodes = self.__contract_nodes(components)
@@ -151,8 +139,8 @@ class Rag(skimage.future.graph.RAG):
 
         for u, v, data in self.edges(data=True):
 
-            if 'merged' not in data:
-                data['merged'] = 0
+            if 'merge_score' not in data:
+                data['merge_score'] = None
 
             if 'agglomeration' not in data:
                 data['agglomerated'] = 0
@@ -168,13 +156,16 @@ class Rag(skimage.future.graph.RAG):
         '''Contract all nodes of one component into a single node, return the
         single node for each component.
 
-        This will create new edges that will have only ``merged`` and
+        This will create new edges that will have only ``merge_score`` and
         ``agglomerated`` attributes, set to 0.
         '''
 
         self.__add_esential_node_attributes()
 
         component_nodes = []
+
+        print(len(components))
+        print([len(c) for c in components])
 
         for component in components:
 
@@ -184,7 +175,7 @@ class Rag(skimage.future.graph.RAG):
                     component[i],
                     # set default attributes for new edges
                     weight_func=lambda _, _src, _dst, _n: {
-                        'merged': 0,
+                        'merge_score': None,
                         'agglomerated': 0
                     })
 

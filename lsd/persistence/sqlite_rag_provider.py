@@ -61,7 +61,7 @@ class SqliteSubRag(SubRag):
 
             names = ', '.join(SqliteRagProvider.edge_attributes)
             values = ', '.join([
-                str(values[key])
+                str(values[key]) if values[key] is not None else 'null'
                 for key in SqliteRagProvider.edge_attributes
             ])
 
@@ -133,7 +133,7 @@ class SqliteSubRag(SubRag):
 
             names = ', '.join(SqliteRagProvider.node_attributes)
             values = ', '.join([
-                str(values[key])
+                str(values[key]) if values[key] is not None else 'null'
                 for key in SqliteRagProvider.node_attributes
             ])
 
@@ -158,13 +158,13 @@ class SqliteRagProvider(SharedRagProvider):
     edge_attributes = [
         'u', 'v',
         'center_x', 'center_y', 'center_z',
-        'merged',
+        'merge_score',
         'agglomerated'
     ]
 
     # edge atttributes that should be written back by
     # SubRag.sync_edge_attributes()
-    sync_edge_attributes = ['merged', 'agglomerated']
+    sync_edge_attributes = ['merge_score', 'agglomerated']
 
     # SQL datatypes for each edge attribute
     node_attribute_dtypes = {
@@ -181,7 +181,7 @@ class SqliteRagProvider(SharedRagProvider):
         'center_x': 'real',
         'center_y': 'real',
         'center_z': 'real',
-        'merged': 'boolean',
+        'merge_score': 'real',
         'agglomerated': 'boolean'
     }
 
@@ -366,7 +366,7 @@ class SqliteRagProvider(SharedRagProvider):
 
             names = ', '.join(self.edge_attributes)
             values = ', '.join([
-                str(values[key])
+                str(values[key]) if values[key] is not None else 'null'
                 for key in self.edge_attributes
             ])
             query = 'INSERT INTO edges (%s) VALUES (%s)'%(names, values)
