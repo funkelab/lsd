@@ -84,7 +84,7 @@ def parallel_aff_agglomerate(
 def block_done(write_roi, rag_provider):
 
     rag = rag_provider[write_roi.to_slices()]
-    return rag.number_of_edges() > 0
+    return rag.number_of_edges() > 0 or rag.number_of_nodes() <= 1
 
 def agglomerate_in_block(
         affs,
