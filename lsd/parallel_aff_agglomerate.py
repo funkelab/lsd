@@ -116,9 +116,11 @@ def agglomerate_in_block(
     logger.debug("fragments shape: %s", fragments.shape)
     logger.debug("fragments num: %d", n)
 
-    # So far, 'rag' does not contain any edges. Run waterz until threshold 0 to
-    # get the waterz RAG, which tells us which nodes are neighboring. Use this
-    # to populate 'rag' with edges. Then run waterz for the given threshold.
+    # So far, 'rag' does not contain any edges belonging to write_roi (there
+    # might be a few edges from neighboring blocks, though). Run waterz until
+    # threshold 0 to get the waterz RAG, which tells us which nodes are
+    # neighboring. Use this to populate 'rag' with edges. Then run waterz for
+    # the given threshold.
 
     # for efficiency, we create one waterz call with both thresholds
     generator = waterz.agglomerate(
@@ -133,8 +135,9 @@ def agglomerate_in_block(
     _, initial_rag = generator.next()
     for edge in initial_rag:
         u, v = fragment_relabel_map[edge['u']], fragment_relabel_map[edge['v']]
-        if rag.has_node(u) and rag.has_node(v):
-            rag.add_edge(u, v, {'merged': False, 'agglomerated': True})
+        # this might overwrite already existing edges from neighboring blocks,
+        # but that's fine, we only write attributes for edges within read_roi
+        rag.add_edge(u, v, {'merged': False, 'agglomerated': True})
 
     # agglomerate fragments using affs
     segmentation, final_rag = generator.next()
@@ -151,7 +154,11 @@ def agglomerate_in_block(
     logger.debug("marking merged edges...")
     num_merged = 0
     for u, v, data in rag.edges(data=True):
-        if fragment_to_segment[u] == fragment_to_segment[v]:
+        if (
+                # there might be nodes in the RAG that are not in the fragments
+                u in fragment_to_segment and
+                v in fragment_to_segment and
+                fragment_to_segment[u] == fragment_to_segment[v]):
             data['merged'] = True
             num_merged += 1
 

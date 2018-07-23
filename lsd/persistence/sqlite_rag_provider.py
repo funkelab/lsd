@@ -31,6 +31,15 @@ class SqliteSubRag(SubRag):
             u, v = min(u, v), max(u, v)
 
             min_node = self.node[u]
+
+            # Some nodes are outside of the originally requested ROI (they have
+            # been pulled in by edges leaving the ROI). These nodes have no
+            # attributes, so we can't perform an inclusion test. However, we
+            # know they are outside of the sub-RAG ROI, and therefore also
+            # outside of 'roi', whatever it is.
+            if 'center_z' not in min_node:
+                continue
+
             min_node_center = Coordinate((
                 min_node['center_z'],
                 min_node['center_y'],
