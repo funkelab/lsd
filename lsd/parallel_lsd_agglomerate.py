@@ -79,7 +79,7 @@ class ParallelLsdAgglomeration(object):
     def merge_until(self, threshold, max_merges=-1):
         '''Merge until the given threshold. Since edges are scored by how much
         they decrease the distance to ``target_lsds``, a threshold of 0 should
-        be optimal.'''
+        be optimal. Returns True if all tasks succeeded.'''
 
         logger.info("Merging until %f...", threshold)
 
@@ -104,7 +104,7 @@ class ParallelLsdAgglomeration(object):
         assert (write_roi/voxel_size)*voxel_size == write_roi, (
             "read_roi needs to be a multiple of voxel_size")
 
-        run_with_dask(
+        return run_with_dask(
             total_roi,
             read_roi,
             write_roi,

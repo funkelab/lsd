@@ -44,6 +44,10 @@ def parallel_watershed(
         num_workers (``int``):
 
             The number of parallel workers.
+
+    Returns:
+
+        True, if all tasks succeeded.
     '''
 
     assert fragments_out.dtype == np.uint64
@@ -59,7 +63,7 @@ def parallel_watershed(
     read_roi = peach.Roi((0,)*len(shape), block_size).grow(context, context)
     write_roi = peach.Roi((0,)*len(shape), block_size)
 
-    peach.run_with_dask(
+    return peach.run_with_dask(
         total_roi,
         read_roi,
         write_roi,
