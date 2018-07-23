@@ -164,9 +164,6 @@ class Rag(skimage.future.graph.RAG):
 
         component_nodes = []
 
-        print(len(components))
-        print([len(c) for c in components])
-
         for component in components:
 
             for i in range(1, len(component)):
