@@ -105,6 +105,30 @@ class Rag(skimage.future.graph.RAG):
             # relabel fragments of the same connected components to match merged RAG
             self.__relabel(fragments, components, component_nodes)
 
+    def get_segmentation(self, threshold, fragments):
+        '''Get the segmentation of this RAG by merging all edges under the
+        given threshold.
+
+        Args:
+
+            threshold (``float``):
+
+                The threshold under which to consider edges as merged.
+
+            fragments (``ndarray``):
+
+                If given, also updates the labels in ``fragments`` according to
+                the merges performed.
+        '''
+
+        # get currently connected componets
+        components = self.get_connected_components(threshold)
+
+        segments = list(range(1, len(components) + 1))
+
+        # relabel fragments of the same connected components to match merged RAG
+        self.__relabel(fragments, components, segments)
+
     def copy(self):
         '''Return a deep copy of this RAG.'''
 
