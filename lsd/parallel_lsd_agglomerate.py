@@ -1,4 +1,5 @@
-from agglomerate import LsdAgglomeration
+from __future__ import absolute_import
+from .agglomerate import LsdAgglomeration
 from peach import Coordinate, Roi, run_with_dask
 import logging
 

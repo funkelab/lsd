@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # this seems necessary to prevent matplotlib from trying to find X11 libraries
 # (matplotlib unfortunately gets imported later on by skimage.future, although
 # we don't need it)
@@ -6,7 +7,7 @@ matplotlib.use('Agg')
 
 from scipy.ndimage.measurements import find_objects
 from skimage.future.graph import RAG
-from graph_merge import merge_hierarchical
+from .graph_merge import merge_hierarchical
 import gunpowder as gp
 import numpy as np
 import logging

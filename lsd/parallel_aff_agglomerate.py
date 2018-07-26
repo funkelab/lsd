@@ -138,7 +138,7 @@ def agglomerate_in_block(
             return_region_graph=True)
 
     # add edges to RAG
-    _, _, initial_rag = generator.next()
+    _, _, initial_rag = next(generator)
     for edge in initial_rag:
         u, v = fragment_relabel_map[edge['u']], fragment_relabel_map[edge['v']]
         # this might overwrite already existing edges from neighboring blocks,
@@ -146,7 +146,7 @@ def agglomerate_in_block(
         rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
 
     # agglomerate fragments using affs
-    segmentation, merge_history, _ = generator.next()
+    segmentation, merge_history, _ = next(generator)
 
     # create a merge tree from the merge history
     merge_tree = MergeTree(fragment_relabel_map)

@@ -1,4 +1,5 @@
-from rag import Rag
+from __future__ import absolute_import
+from .rag import Rag
 
 class SharedRagProvider(object):
     '''Interface for shared region adjacency graph providers that supports

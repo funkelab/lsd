@@ -1,6 +1,7 @@
-import logging
+from __future__ import absolute_import
+from ..local_shape_descriptor import LsdExtractor
 from gunpowder import BatchFilter, Array
-from lsd import LsdExtractor
+import logging
 import numpy as np
 import time
 
