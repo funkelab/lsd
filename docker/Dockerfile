@@ -5,7 +5,7 @@ LABEL maintainer funkej@janelia.hhmi.org
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=93dfa925f65a0b58406ea497a379f56e54e91384
+ENV GUNPOWDER_REVISION=10f6abae0d145cc3ba167198f7cdb31bcc5cc54a
 
 ENV MALIS_ROOT=/src/malis
 ENV MALIS_REPOSITORY=https://github.com/TuragaLab/malis.git
@@ -21,11 +21,11 @@ ENV DVISION_REVISION=v0.1.1
 
 ENV MALA_ROOT=/src/mala
 ENV MALA_REPOSITORY=https://github.com/funkey/mala.git
-ENV MALA_REVISION=05d54a5a48771608125746c989280888be62d99c
+ENV MALA_REVISION=465b02ffce4204a4c1922f2b316a8b447ec4eb9b
 
 ENV WATERZ_ROOT=/src/waterz
 ENV WATERZ_REPOSITORY=https://github.com/funkey/waterz
-ENV WATERZ_REVISION=d2bede846391c56a54365c13d5b2f2f4e6db4ecd
+ENV WATERZ_REVISION=f252c42afcc25e7f09398dd11fe11a534acc7c93
 
 ENV PEACH_ROOT=/src/peach
 ENV PEACH_REPOSITORY=https://github.com/funkey/peach
