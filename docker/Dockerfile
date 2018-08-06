@@ -5,7 +5,7 @@ LABEL maintainer funkej@janelia.hhmi.org
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=10f6abae0d145cc3ba167198f7cdb31bcc5cc54a
+ENV GUNPOWDER_REVISION=8ae0685793d728fee4b23744655e503ffd378cb3
 
 ENV MALIS_ROOT=/src/malis
 ENV MALIS_REPOSITORY=https://github.com/TuragaLab/malis.git
