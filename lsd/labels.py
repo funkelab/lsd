@@ -14,9 +14,19 @@ def relabel(array, return_backwards_map=False):
     old_labels = np.unique(array)
     old_labels = old_labels[old_labels != 0]
 
+    if old_labels.size == 0:
+
+        if return_backwards_map:
+            return array, 1, [0]
+        else:
+            return array, 1
+
     # shift previous labels to save some memory in replace_values
-    offset = old_labels.min()
-    shifted_array = array - offset
+    min_label = old_labels.min()
+    assert min_label > 0
+    offset = old_labels.dtype.type(min_label - 1)
+    shifted_array = array.copy()
+    shifted_array[shifted_array != 0] -= offset
     shifted_old_labels = old_labels - offset
 
     n = len(old_labels) + 1
