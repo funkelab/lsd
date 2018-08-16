@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from .agglomerate import LsdAgglomeration
-from peach import Coordinate, Roi, run_with_dask
+from peach import Coordinate, Roi, run_blockwise
 import logging
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ class ParallelLsdAgglomeration(object):
         assert (write_roi/voxel_size)*voxel_size == write_roi, (
             "read_roi needs to be a multiple of voxel_size")
 
-        return run_with_dask(
+        return run_blockwise(
             total_roi,
             read_roi,
             write_roi,

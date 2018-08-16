@@ -67,32 +67,32 @@ def parallel_aff_agglomerate(
     read_roi = peach.Roi((0,)*len(shape), block_size).grow(context, context)
     write_roi = peach.Roi((0,)*len(shape), block_size)
 
-    return peach.run_with_dask(
+    return peach.run_blockwise(
         total_roi,
         read_roi,
         write_roi,
-        lambda r, w: agglomerate_in_block(
+        lambda b: agglomerate_in_block(
             affs,
             fragments,
             rag_provider,
-            r, w,
+            b,
             merge_function,
             threshold),
-        lambda w: block_done(w, rag_provider),
+        lambda b: block_done(b, rag_provider),
         num_workers=num_workers,
-        read_write_conflict=False)
+        read_write_conflict=False,
+        fit='shrink')
 
-def block_done(write_roi, rag_provider):
+def block_done(block, rag_provider):
 
-    rag = rag_provider[write_roi.to_slices()]
+    rag = rag_provider[block.write_roi.to_slices()]
     return rag.number_of_edges() > 0 or rag.number_of_nodes() <= 1
 
 def agglomerate_in_block(
         affs,
         fragments,
         rag_provider,
-        read_roi,
-        write_roi,
+        block,
         merge_function,
         threshold):
 
@@ -100,7 +100,8 @@ def agglomerate_in_block(
     affs_roi = peach.Roi((0,)*len(shape), shape)
 
     # ensure read_roi is within bounds of affs.shape
-    read_roi = affs_roi.intersect(read_roi)
+    read_roi = affs_roi.intersect(block.read_roi)
+    write_roi = block.write_roi
 
     logger.info(
         "Agglomerating in block %s with context of %s",

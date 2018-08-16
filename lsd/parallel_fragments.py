@@ -13,7 +13,8 @@ def parallel_watershed(
         block_size,
         context,
         fragments_out,
-        num_workers):
+        num_workers,
+        fragments_in_xy=False):
     '''Extract fragments from affinities using watershed.
 
     Args:
@@ -45,6 +46,10 @@ def parallel_watershed(
 
             The number of parallel workers.
 
+        fragments_in_xy (``bool``):
+
+            Whether to extract fragments for each xy-section separately.
+
     Returns:
 
         True, if all tasks succeeded.
@@ -63,32 +68,44 @@ def parallel_watershed(
     read_roi = peach.Roi((0,)*len(shape), block_size).grow(context, context)
     write_roi = peach.Roi((0,)*len(shape), block_size)
 
-    return peach.run_with_dask(
+    return peach.run_blockwise(
         total_roi,
         read_roi,
         write_roi,
-        lambda r, w: watershed_in_block(affs, r, w, rag_provider, fragments_out),
-        lambda w: block_done(w, rag_provider),
+        lambda b: watershed_in_block(
+            affs,
+            b,
+            rag_provider,
+            fragments_out,
+            fragments_in_xy),
+        lambda b: block_done(b, rag_provider),
         num_workers=num_workers,
-        read_write_conflict=False)
+        read_write_conflict=False,
+        fit='shrink')
 
-def block_done(write_roi, rag_provider):
+def block_done(block, rag_provider):
 
-    rag = rag_provider[write_roi.to_slices()]
-    logger.debug("%d nodes in %s", rag.number_of_nodes(), write_roi)
+    rag = rag_provider[block.write_roi.to_slices()]
+    logger.debug("%d nodes in %s", rag.number_of_nodes(), block.write_roi)
     return rag.number_of_nodes() > 0
 
-def watershed_in_block(affs, read_roi, write_roi, rag_provider, fragments_out):
+def watershed_in_block(
+        affs,
+        block,
+        rag_provider,
+        fragments_out,
+        fragments_in_xy):
 
     shape = affs.shape[1:]
     affs_roi = peach.Roi((0,)*len(shape), shape)
 
     # ensure read_roi is within bounds of affs.shape
-    read_roi = affs_roi.intersect(read_roi)
+    read_roi = affs_roi.intersect(block.read_roi)
+    write_roi = block.write_roi
 
     logger.debug("reading affs from %s", read_roi)
     affs = affs[(slice(None),) + read_roi.to_slices()]
-    fragments, n = watershed_from_affinities(affs)
+    fragments, n = watershed_from_affinities(affs, fragments_in_xy=fragments_in_xy)
 
     if write_roi != read_roi:
 
