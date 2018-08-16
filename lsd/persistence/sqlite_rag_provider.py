@@ -15,7 +15,27 @@ class SqliteSubRag(SubRag):
 
         self.filename = filename
         self.read_only = read_only
-        self.sync_edge_attributes = sync_edge_attributes
+        self._sync_edge_attributes = sync_edge_attributes
+
+    def _contains(self, roi, edge):
+
+        u, v = edge
+        min_node = self.node[u]
+
+        # Some nodes are outside of the originally requested ROI (they have
+        # been pulled in by edges leaving the ROI). These nodes have no
+        # attributes, so we can't perform an inclusion test. However, we
+        # know they are outside of the sub-RAG ROI, and therefore also
+        # outside of 'roi', whatever it is.
+        if 'center_z' not in min_node:
+            return False
+
+        min_node_center = Coordinate((
+            min_node['center_z'],
+            min_node['center_y'],
+            min_node['center_x']))
+
+        return roi.contains(min_node_center)
 
     def sync_edges(self, roi):
 
@@ -30,33 +50,12 @@ class SqliteSubRag(SubRag):
         for u, v, data in self.edges(data=True):
 
             u, v = min(u, v), max(u, v)
-
-            min_node = self.node[u]
-
-            # Some nodes are outside of the originally requested ROI (they have
-            # been pulled in by edges leaving the ROI). These nodes have no
-            # attributes, so we can't perform an inclusion test. However, we
-            # know they are outside of the sub-RAG ROI, and therefore also
-            # outside of 'roi', whatever it is.
-            if 'center_z' not in min_node:
-                continue
-
-            min_node_center = Coordinate((
-                min_node['center_z'],
-                min_node['center_y'],
-                min_node['center_x']))
-
-            # only store edges that are associated to the given ROI
-            if not roi.contains(min_node_center):
+            if not self._contains(roi, (u, v)):
                 continue
 
             values = {
                 'u': u,
                 'v': v,
-                # TODO: remove when schema changes
-                'center_z': 0,
-                'center_y': 0,
-                'center_x': 0,
             }
             values.update(data)
 
@@ -86,28 +85,21 @@ class SqliteSubRag(SubRag):
         for u, v, data in self.edges(data=True):
 
             u, v = min(u, v), max(u, v)
+            if not self._contains(roi, (u, v)):
+                continue
 
             update = ', '.join([
                 key + ' = ' + str(data[key])
-                for key in self.sync_edge_attributes
+                for key in self._sync_edge_attributes
             ])
 
             query = '''
                 UPDATE edges
                 SET %s
                 WHERE u == %d AND v == %d
-                AND center_z >= %d AND center_z < %d
-                AND center_y >= %d AND center_y < %d
-                AND center_x >= %d AND center_x < %d
             '''%(
                 update,
-                u, v,
-                roi.get_begin()[0],
-                roi.get_end()[0],
-                roi.get_begin()[1],
-                roi.get_end()[1],
-                roi.get_begin()[2],
-                roi.get_end()[2]
+                u, v
             )
             logger.debug(query)
             c.execute(query)
@@ -120,7 +112,7 @@ class SqliteSubRag(SubRag):
         if self.read_only:
             raise RuntimeError("Trying to write to read-only DB")
 
-        logger.debug("Writing back nodes and their attributes")
+        logger.debug("Writing all nodes")
 
         connection = sqlite3.connect(self.filename, timeout=300.0)
         c = connection.cursor()
@@ -158,7 +150,6 @@ class SqliteRagProvider(SharedRagProvider):
     # all edge attributes
     edge_attributes = [
         'u', 'v',
-        'center_x', 'center_y', 'center_z',
         'merge_score',
         'agglomerated'
     ]
@@ -167,7 +158,7 @@ class SqliteRagProvider(SharedRagProvider):
     # SubRag.sync_edge_attributes()
     sync_edge_attributes = ['merge_score', 'agglomerated']
 
-    # SQL datatypes for each edge attribute
+    # SQL datatypes for each node attribute
     node_attribute_dtypes = {
         'id': 'bigint',
         'center_x': 'real',
@@ -179,9 +170,6 @@ class SqliteRagProvider(SharedRagProvider):
     edge_attribute_dtypes = {
         'u': 'bigint',
         'v': 'bigint',
-        'center_x': 'real',
-        'center_y': 'real',
-        'center_z': 'real',
         'merge_score': 'real',
         'agglomerated': 'boolean'
     }
@@ -223,7 +211,7 @@ class SqliteRagProvider(SharedRagProvider):
                 # nodes did not exist
                 pass
 
-        # make sure requred tables are present
+        # make sure required tables are present
         try:
 
             attributes = ', '.join([
