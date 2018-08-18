@@ -21,7 +21,7 @@ class SharedRagProvider(object):
         sub_rag.sync_edges()
     '''
 
-    def __getitem__(self, slices):
+    def __getitem__(self, roi):
         raise RuntimeError("not implemented in %s"%self.name())
 
     def name(self):

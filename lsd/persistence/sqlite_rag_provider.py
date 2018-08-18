@@ -217,13 +217,13 @@ class SqliteRagProvider(SharedRagProvider):
 
         return '%s >= %d AND %s < %d'%(value, start, value, stop)
 
-    def __getitem__(self, slices):
+    def __getitem__(self, roi):
 
-        assert len(slices) == 3, "Sorry, SQLite backend does only 3D"
+        assert len(roi.dims()) == 3, "Sorry, SQLite backend does only 3D"
 
         slice_conditions = [
             self.__slice_condition('center_%s'%dim, s.start, s.stop)
-            for dim, s in zip(['z', 'y', 'x'], slices)
+            for dim, s in zip(['z', 'y', 'x'], roi.to_slices())
             if s.start is not None or s.stop is not None
         ]
         if len(slice_conditions) > 0:

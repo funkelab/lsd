@@ -85,7 +85,7 @@ def parallel_aff_agglomerate(
 
 def block_done(block, rag_provider):
 
-    rag = rag_provider[block.write_roi.to_slices()]
+    rag = rag_provider[block.write_roi]
     return rag.number_of_edges() > 0 or rag.number_of_nodes() <= 1
 
 def agglomerate_in_block(
@@ -110,7 +110,7 @@ def agglomerate_in_block(
     # get the sub-{affs, fragments, graph} to work on
     affs = affs[(slice(None),) + read_roi.to_slices()]
     fragments = fragments[read_roi.to_slices()]
-    rag = rag_provider[read_roi.to_slices()]
+    rag = rag_provider[read_roi]
 
     # waterz uses memory proportional to the max label in fragments, therefore
     # we relabel them here and use those

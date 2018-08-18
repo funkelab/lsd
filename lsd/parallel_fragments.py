@@ -85,7 +85,7 @@ def parallel_watershed(
 
 def block_done(block, rag_provider):
 
-    rag = rag_provider[block.write_roi.to_slices()]
+    rag = rag_provider[block.write_roi]
     logger.debug("%d nodes in %s", rag.number_of_nodes(), block.write_roi)
     return rag.number_of_nodes() > 0
 
@@ -153,7 +153,7 @@ def watershed_in_block(
     }
 
     # store nodes
-    rag = rag_provider[write_roi.to_slices()]
+    rag = rag_provider[write_roi]
     rag.add_nodes_from([
         (node, {
             'center_z': c[0],
