@@ -72,41 +72,6 @@ class SqliteSubRag(SubRag):
         connection.commit()
         connection.close()
 
-    def sync_edge_attributes(self, roi):
-
-        if self.read_only:
-            raise RuntimeError("Trying to write to read-only DB")
-
-        logger.debug("Writing back edge attributes in %s", roi)
-
-        connection = sqlite3.connect(self.filename, timeout=300.0)
-        c = connection.cursor()
-
-        for u, v, data in self.edges(data=True):
-
-            u, v = min(u, v), max(u, v)
-            if not self._contains(roi, (u, v)):
-                continue
-
-            update = ', '.join([
-                key + ' = ' + str(data[key])
-                for key in self._sync_edge_attributes
-            ])
-
-            query = '''
-                UPDATE edges
-                SET %s
-                WHERE u == %d AND v == %d
-            '''%(
-                update,
-                u, v
-            )
-            logger.debug(query)
-            c.execute(query)
-
-        connection.commit()
-        connection.close()
-
     def sync_nodes(self):
 
         if self.read_only:

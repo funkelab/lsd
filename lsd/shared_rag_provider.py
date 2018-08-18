@@ -19,9 +19,6 @@ class SharedRagProvider(object):
 
         # write edges
         sub_rag.sync_edges()
-
-        # write changes made edge attributes
-        sub_rag.sync_edge_attributes()
     '''
 
     def __getitem__(self, slices):
@@ -35,12 +32,6 @@ class SubRag(Rag):
     def sync_edges(self, roi):
         '''Write edges and their attributes. Restrict the sync to the given
         ROI.'''
-        raise RuntimeError("not implemented in %s"%self.name())
-
-    def sync_edge_attributes(self, roi):
-        '''Write back modifications made to edge attributes with the
-        persistency backend associated to this sub-RAG. Restrict the sync to
-        the given ROI.'''
         raise RuntimeError("not implemented in %s"%self.name())
 
     def sync_nodes(self):
