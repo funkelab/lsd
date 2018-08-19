@@ -219,7 +219,7 @@ class SqliteRagProvider(SharedRagProvider):
 
     def __getitem__(self, roi):
 
-        assert len(roi.dims()) == 3, "Sorry, SQLite backend does only 3D"
+        assert roi.dims() == 3, "Sorry, SQLite backend does only 3D"
 
         slice_conditions = [
             self.__slice_condition('center_%s'%dim, s.start, s.stop)
