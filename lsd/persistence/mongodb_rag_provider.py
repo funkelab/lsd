@@ -3,6 +3,7 @@ from ..shared_rag_provider import SharedRagProvider, SubRag
 from networkx.convert import to_dict_of_dicts
 from peach import Coordinate
 from pymongo import MongoClient, IndexModel, ASCENDING
+from pymongo.errors import BulkWriteError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,14 @@ class MongoDbSubRag(SubRag):
             edge.update(data)
             edges.append(edge)
 
-        self.edges_collection.insert_many(edges)
+        try:
+
+            self.edges_collection.insert_many(edges)
+
+        except BulkWriteError as e:
+
+            logger.error(e.details)
+            raise
 
     def sync_nodes(self):
 
@@ -81,7 +89,14 @@ class MongoDbSubRag(SubRag):
             node.update(data)
             nodes.append(node)
 
-        self.nodes_collection.insert_many(nodes)
+        try:
+
+            self.nodes_collection.insert_many(nodes)
+
+        except BulkWriteError as e:
+
+            logger.error(e.details)
+            raise
 
 class MongoDbRagProvider(SharedRagProvider):
     '''A shared region adjacency graph stored in an SQLite file.
