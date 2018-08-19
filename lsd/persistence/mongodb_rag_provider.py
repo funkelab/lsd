@@ -57,8 +57,8 @@ class MongoDbSubRag(SubRag):
                 continue
 
             edge = {
-                'u': u,
-                'v': v,
+                'u': int(u),
+                'v': int(v),
             }
             edge.update(data)
             edges.append(edge)
@@ -76,7 +76,7 @@ class MongoDbSubRag(SubRag):
         for node_id, data in self.nodes(data=True):
 
             node = {
-                'id': node_id
+                'id': int(node_id)
             }
             node.update(data)
             nodes.append(node)
