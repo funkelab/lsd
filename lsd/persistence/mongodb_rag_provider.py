@@ -75,7 +75,7 @@ class MongoDbSubRag(SubRag):
 
     def sync_nodes(self):
 
-        if self.read_only:
+        if self.mode == 'r':
             raise RuntimeError("Trying to write to read-only DB")
 
         logger.debug("Writing all nodes")
