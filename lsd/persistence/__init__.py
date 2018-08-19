@@ -1,2 +1,3 @@
 from __future__ import absolute_import
 from .sqlite_rag_provider import SqliteRagProvider
+from .mongodb_rag_provider import MongoDbRagProvider
