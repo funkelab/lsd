@@ -9,14 +9,15 @@ logger = logging.getLogger(__name__)
 
 class MongoDbSubRag(SubRag):
 
-    def __init__(self, db_name, mode):
+    def __init__(self, db_name, host=None, mode='r+'):
 
         super(SubRag, self).__init__()
 
         self.db_name = db_name
+        self.host = host
         self.mode = mode
 
-        self.client = MongoClient()
+        self.client = MongoClient(self.host)
         self.database = self.client[db_name]
         self.nodes_collection = self.database['nodes']
         self.edges_collection = self.database['edges']
@@ -172,7 +173,7 @@ class MongoDbRagProvider(SharedRagProvider):
         logger.debug("read edges: %s", edge_list)
 
         # create the sub-RAG
-        graph = MongoDbSubRag(self.db_name, self.mode)
+        graph = MongoDbSubRag(self.db_name, self.host, self.mode)
         graph.add_nodes_from(node_list)
         graph.add_edges_from(edge_list)
 
