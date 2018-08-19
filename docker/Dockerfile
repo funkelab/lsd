@@ -38,7 +38,8 @@ RUN conda install -y -c conda-forge -c cpape \
   scikit-image \
   dask distributed \
   luigi \
-  mahotas
+  mahotas \
+  pymongo
 
 # dependencies for lsd
 
