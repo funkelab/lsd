@@ -132,24 +132,18 @@ def watershed_in_block(
         logger.debug("cropping fragment array to %s", write_in_read_roi)
         fragments = fragments[write_in_read_roi.to_slices()]
 
-        # ensure we don't have IDs larger than the number of voxels (that would
-        # break uniqueness of IDs below)
-        max_id = fragments.max()
-        if max_id > write_roi.size():
-            logger.warning(
-                "fragments in %s have max ID %d, relabelling...",
-                write_roi, max_id)
-            fragments, n = relabel(fragments)
+    # ensure we don't have IDs larger than the number of voxels (that would
+    # break uniqueness of IDs below)
+    max_id = fragments.max()
+    if max_id > block.write_roi.size():
+        logger.warning(
+            "fragments in %s have max ID %d, relabelling...",
+            block.write_roi, max_id)
+        fragments, n = relabel(fragments)
 
     # ensure unique IDs
-    num_blocks = peach.Coordinate(shape)/write_roi.get_shape()
-    block_index = write_roi.get_offset()/write_roi.get_shape()
-    # id_bump ensures that IDs are unique, even if every voxel was a fragment
-    id_bump = (
-        block_index[0]*num_blocks[1]*num_blocks[2] +
-        block_index[1]*num_blocks[2] +
-        block_index[2])*write_roi.size()
-
+    id_bump = block.block_id*block.requested_write_roi.size()
+    logger.debug("bumping fragment IDs by %i", id_bump)
     fragments[fragments>0] += id_bump
     fragment_ids = range(id_bump + 1, id_bump + 1 + n)
 
