@@ -14,7 +14,8 @@ def parallel_watershed(
         context,
         fragments_out,
         num_workers,
-        fragments_in_xy=False):
+        fragments_in_xy=False,
+        mask=None):
     '''Extract fragments from affinities using watershed.
 
     Args:
@@ -50,6 +51,11 @@ def parallel_watershed(
 
             Whether to extract fragments for each xy-section separately.
 
+        mask (array-like):
+
+            A dataset containing a mask. If given, fragments are only extracted
+            for masked-in (==1) areas.
+
     Returns:
 
         True, if all tasks succeeded.
@@ -77,7 +83,8 @@ def parallel_watershed(
             b,
             rag_provider,
             fragments_out,
-            fragments_in_xy),
+            fragments_in_xy,
+            mask),
         lambda b: block_done(b, rag_provider),
         num_workers=num_workers,
         read_write_conflict=False,
@@ -94,7 +101,8 @@ def watershed_in_block(
         block,
         rag_provider,
         fragments_out,
-        fragments_in_xy):
+        fragments_in_xy,
+        mask):
 
     shape = affs.shape[1:]
     affs_roi = peach.Roi((0,)*len(shape), shape)
@@ -105,7 +113,17 @@ def watershed_in_block(
 
     logger.debug("reading affs from %s", read_roi)
     affs = affs[(slice(None),) + read_roi.to_slices()]
+
+    if mask is not None:
+        logger.debug("reading mask from %s", read_roi)
+        mask = mask[read_roi.to_slices()]
+        logger.debug("masking affinities")
+        affs *= mask
+
     fragments, n = watershed_from_affinities(affs, fragments_in_xy=fragments_in_xy)
+
+    if mask is not None:
+        fragments *= mask.astype(np.uint64)
 
     if write_roi != read_roi:
 
