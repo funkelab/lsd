@@ -64,6 +64,9 @@ class MongoDbSubRag(SubRag):
             edge.update(data)
             edges.append(edge)
 
+        if len(edges) == 0:
+            return
+
         try:
 
             self.edges_collection.insert_many(edges)
@@ -88,6 +91,9 @@ class MongoDbSubRag(SubRag):
             }
             node.update(data)
             nodes.append(node)
+
+        if len(nodes) == 0:
+            return
 
         try:
 
