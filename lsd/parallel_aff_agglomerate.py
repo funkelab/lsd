@@ -20,26 +20,25 @@ def parallel_aff_agglomerate(
 
     Args:
 
-        affs (array-like):
+        affs (`class:peach.Array`):
 
-            A dataset that supports slicing to get affinities.
+            An array containing affinities.
 
-        fragments (array-like):
+        fragments (`class:peach.Array`):
 
-            A dataset that supports slicing to get fragments. Should be of
-            ``dtype`` ``uint64``.
+            An array containing fragments.
 
         rag_provider (`class:SharedRagProvider`):
 
-            A RAG provider to write found edges to.
+            A RAG provider to read nodes from and write found edges to.
 
         block_size (``tuple`` of ``int``):
 
-            The size of the blocks to process in parallel in voxels.
+            The size of the blocks to process in parallel, in world units.
 
         context (``tuple`` of ``int``):
 
-            The context to consider for agglomeration, in voxels.
+            The context to consider for agglomeration, in world units.
 
         merge_function (``string``):
 
@@ -58,14 +57,14 @@ def parallel_aff_agglomerate(
         True, if all tasks succeeded.
     '''
 
-    assert fragments.dtype == np.uint64
+    assert fragments.data.dtype == np.uint64
 
     shape = affs.shape[1:]
     context = peach.Coordinate(context)
 
-    total_roi = peach.Roi((0,)*len(shape), shape).grow(context, context)
-    read_roi = peach.Roi((0,)*len(shape), block_size).grow(context, context)
-    write_roi = peach.Roi((0,)*len(shape), block_size)
+    total_roi = affs.roi.grow(context, context)
+    read_roi = peach.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
+    write_roi = peach.Roi((0,)*affs.roi.dims(), block_size)
 
     return peach.run_blockwise(
         total_roi,
@@ -96,26 +95,19 @@ def agglomerate_in_block(
         merge_function,
         threshold):
 
-    shape = fragments.shape
-    affs_roi = peach.Roi((0,)*len(shape), shape)
-
-    # ensure read_roi is within bounds of affs.shape
-    read_roi = affs_roi.intersect(block.read_roi)
-    write_roi = block.write_roi
-
     logger.info(
         "Agglomerating in block %s with context of %s",
-        write_roi, read_roi)
+        block.write_roi, block.read_roi)
 
     # get the sub-{affs, fragments, graph} to work on
-    affs = affs[(slice(None),) + read_roi.to_slices()]
-    fragments = fragments[read_roi.to_slices()]
-    rag = rag_provider[read_roi]
+    affs = affs.intersect(block.read_roi)
+    fragments = fragments.fill(affs.roi)
+    rag = rag_provider[affs.roi]
 
     # waterz uses memory proportional to the max label in fragments, therefore
     # we relabel them here and use those
     fragments_relabelled, n, fragment_relabel_map = relabel(
-        fragments,
+        fragments.data,
         return_backwards_map=True)
 
     logger.debug("affs shape: %s", affs.shape)
@@ -130,7 +122,7 @@ def agglomerate_in_block(
 
     # for efficiency, we create one waterz call with both thresholds
     generator = waterz.agglomerate(
-            affs=affs,
+            affs=affs.data,
             thresholds=[0, threshold],
             fragments=fragments_relabelled,
             scoring_function=merge_function,
@@ -147,7 +139,7 @@ def agglomerate_in_block(
         rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
 
     # agglomerate fragments using affs
-    segmentation, merge_history, _ = next(generator)
+    _, merge_history, _ = next(generator)
 
     # create a merge tree from the merge history
     merge_tree = MergeTree(fragment_relabel_map)
@@ -173,4 +165,4 @@ def agglomerate_in_block(
 
     # write back results (only within write_roi)
     logger.debug("writing to DB...")
-    rag.sync_edges(write_roi)
+    rag.sync_edges(block.write_roi)

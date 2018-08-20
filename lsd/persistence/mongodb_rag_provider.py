@@ -123,6 +123,7 @@ class MongoDbRagProvider(SharedRagProvider):
             self.__connect()
 
             if mode == 'w':
+                logger.info("dropping database %s", db_name)
                 self.client.drop_database(db_name)
 
             if self.db_name not in self.client.list_database_names():

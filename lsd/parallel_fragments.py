@@ -1,3 +1,4 @@
+from __future__ import division
 from .fragments import watershed_from_affinities
 from .labels import relabel
 from scipy.ndimage.measurements import center_of_mass
@@ -20,9 +21,9 @@ def parallel_watershed(
 
     Args:
 
-        affs (array-like):
+        affs (`class:peach.Array`):
 
-            A dataset that supports slicing to get affinities.
+            An array containing affinities.
 
         rag_provider (`class:SharedRagProvider`):
 
@@ -32,16 +33,15 @@ def parallel_watershed(
 
         block_size (``tuple`` of ``int``):
 
-            The size of the blocks to process in parallel in voxels.
+            The size of the blocks to process in parallel in world units.
 
         context (``tuple`` of ``int``):
 
-            The context to consider for fragment extraction, in voxels.
+            The context to consider for fragment extraction, in world units.
 
-        fragments_out (array-like):
+        fragments_out (`class:peach.Array`):
 
-            A dataset that supports slicing to store fragments in. Should be of
-            ``dtype`` ``uint64``.
+            An array to store fragments in. Should be of ``dtype`` ``uint64``.
 
         num_workers (``int``):
 
@@ -51,7 +51,7 @@ def parallel_watershed(
 
             Whether to extract fragments for each xy-section separately.
 
-        mask (array-like):
+        mask (`class:peach.Array`):
 
             A dataset containing a mask. If given, fragments are only extracted
             for masked-in (==1) areas.
@@ -61,18 +61,16 @@ def parallel_watershed(
         True, if all tasks succeeded.
     '''
 
-    assert fragments_out.dtype == np.uint64
-
-    shape = affs.shape[1:]
+    assert fragments_out.data.dtype == np.uint64
 
     if context is None:
-        context = peach.Coordinate((0,)*len(shape))
+        context = peach.Coordinate((0,)*affs.roi.dims())
     else:
         context = peach.Coordinate(context)
 
-    total_roi = peach.Roi((0,)*len(shape), shape).grow(context, context)
-    read_roi = peach.Roi((0,)*len(shape), block_size).grow(context, context)
-    write_roi = peach.Roi((0,)*len(shape), block_size)
+    total_roi = affs.roi.grow(context, context)
+    read_roi = peach.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
+    write_roi = peach.Roi((0,)*affs.roi.dims(), block_size)
 
     return peach.run_blockwise(
         total_roi,
@@ -104,52 +102,47 @@ def watershed_in_block(
         fragments_in_xy,
         mask):
 
-    shape = affs.shape[1:]
-    affs_roi = peach.Roi((0,)*len(shape), shape)
+    total_roi = affs.roi
 
-    # ensure read_roi is within bounds of affs.shape
-    read_roi = affs_roi.intersect(block.read_roi)
-    write_roi = block.write_roi
-
-    logger.debug("reading affs from %s", read_roi)
-    affs = affs[(slice(None),) + read_roi.to_slices()]
+    logger.debug("reading affs from %s", block.read_roi)
+    affs = affs.intersect(block.read_roi)
 
     if mask is not None:
-        logger.debug("reading mask from %s", read_roi)
-        mask = mask[read_roi.to_slices()]
+
+        logger.debug("reading mask from %s", block.read_roi)
+        mask = mask.intersect(block.read_roi)
         logger.debug("masking affinities")
-        affs *= mask
+        affs.data *= mask.data
 
-    fragments, n = watershed_from_affinities(affs, fragments_in_xy=fragments_in_xy)
-
+    # extract fragments
+    fragments_data, n = watershed_from_affinities(affs.data, fragments_in_xy=fragments_in_xy)
     if mask is not None:
-        fragments *= mask.astype(np.uint64)
+        fragments_data *= mask.data.astype(np.uint64)
+    fragments = peach.Array(fragments_data, affs.roi, affs.voxel_size)
 
-    if write_roi != read_roi:
-
-        # get fragments in write_roi
-        write_in_read_roi = write_roi - read_roi.get_offset()
-        logger.debug("cropping fragment array to %s", write_in_read_roi)
-        fragments = fragments[write_in_read_roi.to_slices()]
+    # crop fragments to write_roi
+    fragments = fragments[block.write_roi]
 
     # ensure we don't have IDs larger than the number of voxels (that would
     # break uniqueness of IDs below)
-    max_id = fragments.max()
+    max_id = fragments.data.max()
     if max_id > block.write_roi.size():
         logger.warning(
             "fragments in %s have max ID %d, relabelling...",
             block.write_roi, max_id)
-        fragments, n = relabel(fragments)
+        fragments.data, n = relabel(fragments.data)
 
     # ensure unique IDs
-    id_bump = block.block_id*block.requested_write_roi.size()
+    size_of_voxel = peach.Roi((0,)*affs.roi.dims(), affs.voxel_size).size()
+    num_voxels_in_block = block.requested_write_roi.size()//size_of_voxel
+    id_bump = block.block_id*num_voxels_in_block
     logger.debug("bumping fragment IDs by %i", id_bump)
-    fragments[fragments>0] += id_bump
+    fragments.data[fragments.data>0] += id_bump
     fragment_ids = range(id_bump + 1, id_bump + 1 + n)
 
     # store fragments
-    logger.debug("writing fragments to %s", write_roi)
-    fragments_out[write_roi.to_slices()] = fragments
+    logger.debug("writing fragments to %s", block.write_roi)
+    fragments_out[block.write_roi] = fragments
 
     # following only makes a difference if fragments were found
     if n == 0:
@@ -157,15 +150,15 @@ def watershed_in_block(
 
     # get fragment centers
     fragment_centers = {
-        fragment: write_roi.get_offset() + center
+        fragment: block.write_roi.get_offset() + affs.voxel_size*center
         for fragment, center in zip(
             fragment_ids,
-            center_of_mass(fragments, fragments, fragment_ids))
+            center_of_mass(fragments.data, fragments.data, fragment_ids))
         if not np.isnan(center[0])
     }
 
     # store nodes
-    rag = rag_provider[write_roi]
+    rag = rag_provider[block.write_roi]
     rag.add_nodes_from([
         (node, {
             'center_z': c[0],
