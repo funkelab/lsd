@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from .agglomerate import LsdAgglomeration
-from peach import Coordinate, Roi, run_blockwise
+from daisy import Coordinate, Roi, run_blockwise
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from ..shared_rag_provider import SharedRagProvider, SubRag
 from networkx.convert import to_dict_of_dicts
-from peach import Coordinate
+from daisy import Coordinate
 import sqlite3
 import logging
 

@@ -2,7 +2,7 @@ from .labels import relabel
 from .merge_tree import MergeTree
 import logging
 import numpy as np
-import peach
+import daisy
 import waterz
 
 logger = logging.getLogger(__name__)
@@ -20,11 +20,11 @@ def parallel_aff_agglomerate(
 
     Args:
 
-        affs (`class:peach.Array`):
+        affs (`class:daisy.Array`):
 
             An array containing affinities.
 
-        fragments (`class:peach.Array`):
+        fragments (`class:daisy.Array`):
 
             An array containing fragments.
 
@@ -60,13 +60,13 @@ def parallel_aff_agglomerate(
     assert fragments.data.dtype == np.uint64
 
     shape = affs.shape[1:]
-    context = peach.Coordinate(context)
+    context = daisy.Coordinate(context)
 
     total_roi = affs.roi.grow(context, context)
-    read_roi = peach.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
-    write_roi = peach.Roi((0,)*affs.roi.dims(), block_size)
+    read_roi = daisy.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
+    write_roi = daisy.Roi((0,)*affs.roi.dims(), block_size)
 
-    return peach.run_blockwise(
+    return daisy.run_blockwise(
         total_roi,
         read_roi,
         write_roi,

@@ -4,7 +4,7 @@ from .labels import relabel
 from scipy.ndimage.measurements import center_of_mass
 import logging
 import numpy as np
-import peach
+import daisy
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def parallel_watershed(
 
     Args:
 
-        affs (`class:peach.Array`):
+        affs (`class:daisy.Array`):
 
             An array containing affinities.
 
@@ -39,7 +39,7 @@ def parallel_watershed(
 
             The context to consider for fragment extraction, in world units.
 
-        fragments_out (`class:peach.Array`):
+        fragments_out (`class:daisy.Array`):
 
             An array to store fragments in. Should be of ``dtype`` ``uint64``.
 
@@ -51,7 +51,7 @@ def parallel_watershed(
 
             Whether to extract fragments for each xy-section separately.
 
-        mask (`class:peach.Array`):
+        mask (`class:daisy.Array`):
 
             A dataset containing a mask. If given, fragments are only extracted
             for masked-in (==1) areas.
@@ -64,15 +64,15 @@ def parallel_watershed(
     assert fragments_out.data.dtype == np.uint64
 
     if context is None:
-        context = peach.Coordinate((0,)*affs.roi.dims())
+        context = daisy.Coordinate((0,)*affs.roi.dims())
     else:
-        context = peach.Coordinate(context)
+        context = daisy.Coordinate(context)
 
     total_roi = affs.roi.grow(context, context)
-    read_roi = peach.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
-    write_roi = peach.Roi((0,)*affs.roi.dims(), block_size)
+    read_roi = daisy.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
+    write_roi = daisy.Roi((0,)*affs.roi.dims(), block_size)
 
-    return peach.run_blockwise(
+    return daisy.run_blockwise(
         total_roi,
         read_roi,
         write_roi,
@@ -118,7 +118,7 @@ def watershed_in_block(
     fragments_data, n = watershed_from_affinities(affs.data, fragments_in_xy=fragments_in_xy)
     if mask is not None:
         fragments_data *= mask.data.astype(np.uint64)
-    fragments = peach.Array(fragments_data, affs.roi, affs.voxel_size)
+    fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
 
     # crop fragments to write_roi
     fragments = fragments[block.write_roi]
@@ -133,7 +133,7 @@ def watershed_in_block(
         fragments.data, n = relabel(fragments.data)
 
     # ensure unique IDs
-    size_of_voxel = peach.Roi((0,)*affs.roi.dims(), affs.voxel_size).size()
+    size_of_voxel = daisy.Roi((0,)*affs.roi.dims(), affs.voxel_size).size()
     num_voxels_in_block = block.requested_write_roi.size()//size_of_voxel
     id_bump = block.block_id*num_voxels_in_block
     logger.debug("bumping fragment IDs by %i", id_bump)

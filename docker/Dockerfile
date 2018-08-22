@@ -100,8 +100,8 @@ RUN git clone ${GUNPOWDER_REPOSITORY} . && \
 RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${GUNPOWDER_ROOT}:$PYTHONPATH
 
-ENV PEACH_ROOT=/src/peach
-ENV PEACH_REPOSITORY=https://github.com/funkey/peach
+ENV PEACH_ROOT=/src/daisy
+ENV PEACH_REPOSITORY=https://github.com/funkey/daisy
 ENV PEACH_REVISION=0be92ba257b7e41f56e272a5e5cbcf3317b95cf6
 
 WORKDIR ${PEACH_ROOT}
