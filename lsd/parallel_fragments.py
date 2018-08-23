@@ -110,7 +110,7 @@ def watershed_in_block(
     if mask is not None:
 
         logger.debug("reading mask from %s", block.read_roi)
-        mask = mask.intersect(block.read_roi)
+        mask = mask.fill(affs.roi)
         logger.debug("masking affinities")
         affs.data *= mask.data
 
