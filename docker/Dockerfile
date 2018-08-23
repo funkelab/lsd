@@ -100,15 +100,15 @@ RUN git clone ${GUNPOWDER_REPOSITORY} . && \
 RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${GUNPOWDER_ROOT}:$PYTHONPATH
 
-ENV PEACH_ROOT=/src/daisy
-ENV PEACH_REPOSITORY=https://github.com/funkey/daisy
-ENV PEACH_REVISION=0be92ba257b7e41f56e272a5e5cbcf3317b95cf6
+ENV DAISY_ROOT=/src/daisy
+ENV DAISY_REPOSITORY=https://github.com/funkey/daisy
+ENV DAISY_REVISION=750f2f19001188afcfacde06045db5d7c928fa25
 
-WORKDIR ${PEACH_ROOT}
-RUN git clone ${PEACH_REPOSITORY} . && \
-    git checkout ${PEACH_REVISION}
+WORKDIR ${DAISY_ROOT}
+RUN git clone ${DAISY_REPOSITORY} . && \
+    git checkout ${DAISY_REVISION}
 RUN python setup.py build_ext --inplace
-ENV PYTHONPATH ${PEACH_ROOT}:$PYTHONPATH
+ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 
 # install lsd
 
