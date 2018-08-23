@@ -1,11 +1,26 @@
+from __future__ import absolute_import
+from .replace_values import replace_values as cpp_replace_values
 import numpy as np
 
 def replace_values(array, old_values, new_values):
 
-    values_map = np.arange(old_values.max() + 1, dtype=new_values.dtype)
-    values_map[old_values] = new_values
+    max_old_value = old_values.max()
 
-    return values_map[array]
+    if max_old_value < 1024**3:
+
+        values_map = np.arange(old_values.max() + 1, dtype=new_values.dtype)
+        values_map[old_values] = new_values
+
+        return values_map[array]
+
+    else:
+
+        values_map = {
+            old_value: new_value
+            for old_value, new_value in zip(old_values, new_values)
+        }
+
+        return cpp_replace_values(array, values_map)
 
 def relabel(array, return_backwards_map=False):
     '''Relabel array, such that IDs are consecutive. Excludes 0.'''

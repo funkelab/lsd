@@ -1,6 +1,5 @@
 default:
-	pip install .
-	-rm -rf dist build gunpowder.egg-info
+	python setup.py install
 
 .PHONY: install-full
 install-full:

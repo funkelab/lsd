@@ -6,6 +6,7 @@ LABEL maintainer funkej@janelia.hhmi.org
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         git \
+        python-numpy \
         libmlpack-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -116,5 +117,7 @@ ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 # Makefile ensures that)
 ADD lsd /src/lsd/lsd
 ADD requirements.txt /src/lsd/requirements.txt
+ADD setup.py /src/lsd/setup.py
 WORKDIR /src/lsd
+RUN python setup.py build_ext --inplace
 ENV PYTHONPATH /src/lsd:$PYTHONPATH

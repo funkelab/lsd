@@ -1,5 +1,6 @@
-from setuptools import setup
-import subprocess
+from Cython.Distutils import build_ext
+from distutils.core import setup
+from distutils.extension import Extension
 
 setup(
         name='lsd',
@@ -13,12 +14,12 @@ setup(
             'lsd',
             'lsd.gp',
         ],
-        install_requires=[
-            "numpy",
-            "scipy",
-            "h5py",
-            "scikit-image",
-            "requests",
-            "gunpowder"
-        ]
+        ext_modules=[
+            Extension(
+                'lsd.replace_values',
+                sources=['lsd/replace_values.pyx'],
+                extra_compile_args=['-O3'],
+                language='c++')
+        ],
+        cmdclass={'build_ext': build_ext}
 )

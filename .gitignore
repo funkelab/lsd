@@ -4,5 +4,11 @@
 *.ipynb
 *.db
 *.py[cod]
+*.c
+*.cpp
+*.so
+lsd.egg-info
+build
 docker/lsd
 docker/requirements.txt
+docker/setup.py
