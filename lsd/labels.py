@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from .replace_values import replace_values as cpp_replace_values
+from .replace_values import replace_values_inplace
 import numpy as np
 
 def replace_values(array, old_values, new_values):
@@ -20,7 +20,10 @@ def replace_values(array, old_values, new_values):
             for old_value, new_value in zip(old_values, new_values)
         }
 
-        return cpp_replace_values(array, values_map)
+        replaced = array.copy()
+        replace_values_inplace(replaced, values_map)
+
+        return replaced
 
 def relabel(array, return_backwards_map=False):
     '''Relabel array, such that IDs are consecutive. Excludes 0.'''
