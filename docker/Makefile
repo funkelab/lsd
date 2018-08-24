@@ -4,9 +4,9 @@ TAG="funkey/lsd:v0.4"
 default:
 	#-docker rmi -f $(TAG)
 	-rm -rf lsd
-	cp -r ../lsd .
-	cp ../requirements.txt .
-	cp ../setup.py .
+	cp -rp ../lsd .
+	cp -p ../requirements.txt .
+	cp -p ../setup.py .
 	docker build -t $(TAG) .
 
 push: default
