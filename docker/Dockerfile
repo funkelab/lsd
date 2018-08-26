@@ -83,13 +83,13 @@ ENV PYTHONPATH ${MALA_ROOT}:$PYTHONPATH
 
 ENV WATERZ_ROOT=/src/waterz
 ENV WATERZ_REPOSITORY=https://github.com/funkey/waterz
-ENV WATERZ_REVISION=f252c42afcc25e7f09398dd11fe11a534acc7c93
+ENV WATERZ_REVISION=8ccd0b308fed604d143577f128420da83ff444da
 
 WORKDIR ${WATERZ_ROOT}
 RUN git clone ${WATERZ_REPOSITORY} . && \
     git checkout ${WATERZ_REVISION}
 RUN mkdir -p /.cython/inline
-ENV PYTHONPATH ${WATERZ_ROOT}:$PYTHONPATH
+RUN python setup.py install
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
