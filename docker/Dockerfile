@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 LABEL maintainer funkej@janelia.hhmi.org
 
 # basic ubuntu packages
@@ -93,7 +93,7 @@ RUN python setup.py install
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=8ae0685793d728fee4b23744655e503ffd378cb3
+ENV GUNPOWDER_REVISION=37c9c6f9b63e76f178330b275078d1f8e0ef4c54
 
 WORKDIR ${GUNPOWDER_ROOT}
 RUN git clone ${GUNPOWDER_REPOSITORY} . && \
