@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04
 LABEL maintainer funkej@janelia.hhmi.org
 
 # basic ubuntu packages
@@ -28,7 +28,7 @@ ENV CONDA_PROMPT_MODIFIER=(base)
 
 # install dependencies
 
-RUN conda install -y tensorflow-gpu cython
+RUN conda install -y tensorflow-gpu=1.3.0 cython
 RUN conda install -y -c conda-forge -c cpape \
   z5py \
   numpy \
