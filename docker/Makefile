@@ -1,4 +1,4 @@
-TAG="funkey/lsd:v0.4"
+TAG="funkey/lsd:v0.4_no-conda"
 
 .PHONY: default push
 default:

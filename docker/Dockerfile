@@ -1,46 +1,22 @@
-FROM nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04
+FROM tensorflow/tensorflow:1.3.0-gpu
 LABEL maintainer funkej@janelia.hhmi.org
 
 # basic ubuntu packages
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget \
+        build-essential \
+        cmake \
         git \
+        libboost-all-dev \
+        libmlpack-dev \
+        python-dev \
         python-numpy \
-        libmlpack-dev && \
+        python-pip \
+        python-scipy \
+        python-setuptools \
+        python-pymongo \
+        wget && \
     rm -rf /var/lib/apt/lists/*
-
-# install conda (which is unfortunately required for z5)
-
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.4-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
-ENV CONDA_SHLVL=1
-ENV PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV CONDA_PYTHON_EXE=/opt/conda/bin/python
-ENV CONDA_DEFAULT_ENV=base
-ENV CONDA_EXE=/opt/conda/bin/conda
-ENV CONDA_PREFIX=/opt/conda
-ENV CONDA_PROMPT_MODIFIER=(base)
-
-# install dependencies
-
-RUN conda install -y tensorflow-gpu=1.3.0 cython
-RUN conda install -y -c conda-forge -c cpape \
-  z5py \
-  numpy \
-  scipy \
-  h5py \
-  requests \
-  retrying \
-  scikit-image \
-  dask distributed \
-  luigi \
-  mahotas \
-  pymongo
 
 # dependencies for lsd
 
@@ -48,6 +24,7 @@ ENV MALIS_ROOT=/src/malis
 ENV MALIS_REPOSITORY=https://github.com/TuragaLab/malis.git
 ENV MALIS_REVISION=2206fe01bd2d10c3bc6a861897820731d1ae131b
 
+RUN pip install cython
 WORKDIR ${MALIS_ROOT}
 RUN git clone ${MALIS_REPOSITORY} . && \
     git checkout ${MALIS_REVISION}
@@ -61,6 +38,7 @@ ENV AUGMENT_REVISION=4a42b01ccad7607b47a1096e904220729dbcb80a
 WORKDIR ${AUGMENT_ROOT} 
 RUN git clone ${AUGMENT_REPOSITORY} . && \
     git checkout ${AUGMENT_REVISION}
+RUN pip install -r requirements.txt
 ENV PYTHONPATH ${AUGMENT_ROOT}:$PYTHONPATH
 
 ENV DVISION_ROOT=/src/dvision
@@ -69,6 +47,7 @@ ENV DVISION_REVISION=v0.1.1
 
 WORKDIR ${DVISION_ROOT}
 RUN git clone -b ${DVISION_REVISION} --depth 1 ${DVISION_REPOSITORY} .
+RUN pip install -r requirements.txt
 ENV PYTHONPATH ${DVISION_ROOT}:$PYTHONPATH
 
 ENV MALA_ROOT=/src/mala
@@ -95,9 +74,11 @@ ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
 ENV GUNPOWDER_REVISION=654fc84f066f3a43470f41d1b804c64c8f883796
 
+RUN pip install zarr
 WORKDIR ${GUNPOWDER_ROOT}
 RUN git clone ${GUNPOWDER_REPOSITORY} . && \
     git checkout ${GUNPOWDER_REVISION}
+RUN pip install -r requirements.txt
 RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${GUNPOWDER_ROOT}:$PYTHONPATH
 
@@ -108,6 +89,7 @@ ENV DAISY_REVISION=0ef112543ec7ee230b3201c047e004e308f9d667
 WORKDIR ${DAISY_ROOT}
 RUN git clone ${DAISY_REPOSITORY} . && \
     git checkout ${DAISY_REVISION}
+RUN pip install -r requirements.txt
 RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 
