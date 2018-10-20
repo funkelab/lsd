@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.3.0-gpu
+FROM tensorflow/tensorflow:1.3.0-gpu-py3
 LABEL maintainer funkej@janelia.hhmi.org
 
 # basic ubuntu packages
@@ -7,14 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
-        libboost-all-dev \
         libmlpack-dev \
-        python-dev \
-        python-numpy \
-        python-pip \
-        python-scipy \
-        python-setuptools \
-        python-pymongo \
+        liblzma-dev \
+        python3-numpy \
         wget && \
     rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV MALIS_ROOT=/src/malis
 ENV MALIS_REPOSITORY=https://github.com/TuragaLab/malis.git
-ENV MALIS_REVISION=2206fe01bd2d10c3bc6a861897820731d1ae131b
+ENV MALIS_REVISION=beb4ee965acee89ab00a20a70205f51177003c69
 
 RUN pip install cython
 WORKDIR ${MALIS_ROOT}
@@ -70,11 +65,31 @@ RUN git clone ${WATERZ_REPOSITORY} . && \
 RUN mkdir -p /.cython/inline
 RUN python setup.py install
 
+ENV NUMCODECS_ROOT=/src/numcodecs
+ENV NUMCODECS_REPOSITORY=https://github.com/funkey/numcodecs
+ENV NUMCODECS_REVISION=f950047d7b666723f81006cbdfd82c0e6705c39c
+
+WORKDIR ${NUMCODECS_ROOT}
+RUN git clone ${NUMCODECS_REPOSITORY} . && \
+    git checkout ${NUMCODECS_REVISION} && \
+    git submodule update --init --recursive
+RUN pip install -r requirements.txt
+RUN python setup.py install
+
+ENV ZARR_ROOT=/src/zarr
+ENV ZARR_REPOSITORY=https://github.com/funkey/zarr
+ENV ZARR_REVISION=eb5c17cb1061f759d2644b15942b98497eefbadd
+
+WORKDIR ${ZARR_ROOT}
+RUN git clone ${ZARR_REPOSITORY} . && \
+    git checkout ${ZARR_REVISION}
+RUN pip install -r requirements.txt
+RUN python setup.py install
+
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
 ENV GUNPOWDER_REVISION=2588ee7d9f51670bc6f6a211ae4d65279ed57ded
 
-RUN pip install zarr
 WORKDIR ${GUNPOWDER_ROOT}
 RUN git clone ${GUNPOWDER_REPOSITORY} . && \
     git checkout ${GUNPOWDER_REVISION}
