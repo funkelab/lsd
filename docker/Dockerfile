@@ -108,6 +108,8 @@ RUN pip install -r requirements.txt
 RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 
+RUN pip install mahotas
+
 # install lsd
 
 # assumes that lsd package directory is in build context (the complementary
