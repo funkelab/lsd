@@ -72,7 +72,7 @@ RUN python setup.py install
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=654fc84f066f3a43470f41d1b804c64c8f883796
+ENV GUNPOWDER_REVISION=2588ee7d9f51670bc6f6a211ae4d65279ed57ded
 
 RUN pip install zarr
 WORKDIR ${GUNPOWDER_ROOT}
