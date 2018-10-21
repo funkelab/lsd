@@ -26,6 +26,11 @@ def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
     '''Extract initial fragments from affinities using a watershed
     transform. Returns the fragments and the maximal ID in it.'''
 
+    if affs.dtype == np.uint8:
+        max_affinity_value = 255.0
+    else:
+        max_affinity_value = 1.0
+
     if fragments_in_xy:
 
         mean_affs = 0.5*(affs[1] + affs[2])
@@ -38,7 +43,7 @@ def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
         id_offset = 0
         for z in range(depth):
 
-            boundary_mask = mean_affs[z]>0.5
+            boundary_mask = mean_affs[z]>0.5*max_affinity_value
             boundary_distances = distance_transform_edt(boundary_mask)
 
             ret = watershed_from_boundary_distance(
@@ -60,7 +65,7 @@ def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
 
     else:
 
-        boundary_mask = np.mean(affs, axis=0)>0.5
+        boundary_mask = np.mean(affs, axis=0)>0.5*max_affinity_value
         boundary_distances = distance_transform_edt(boundary_mask)
 
         return watershed_from_boundary_distance(

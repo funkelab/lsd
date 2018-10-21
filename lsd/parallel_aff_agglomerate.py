@@ -114,6 +114,11 @@ def agglomerate_in_block(
     logger.debug("fragments shape: %s", fragments.shape)
     logger.debug("fragments num: %d", n)
 
+    # convert affs to float32 ndarray with values between 0 and 1
+    affs = affs.to_ndarray()
+    if affs.dtype == np.uint8:
+        affs = affs.astype(np.float32)/255.0
+
     # So far, 'rag' does not contain any edges belonging to write_roi (there
     # might be a few edges from neighboring blocks, though). Run waterz until
     # threshold 0 to get the waterz RAG, which tells us which nodes are
@@ -122,7 +127,7 @@ def agglomerate_in_block(
 
     # for efficiency, we create one waterz call with both thresholds
     generator = waterz.agglomerate(
-            affs=affs.data,
+            affs=affs,
             thresholds=[0, threshold],
             fragments=fragments_relabelled,
             scoring_function=merge_function,
