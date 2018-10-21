@@ -107,7 +107,7 @@ def agglomerate_in_block(
     # waterz uses memory proportional to the max label in fragments, therefore
     # we relabel them here and use those
     fragments_relabelled, n, fragment_relabel_map = relabel(
-        fragments.data,
+        fragments,
         return_backwards_map=True)
 
     logger.debug("affs shape: %s", affs.shape)

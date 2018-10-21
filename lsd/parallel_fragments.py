@@ -123,6 +123,7 @@ def watershed_in_block(
 
     # crop fragments to write_roi
     fragments = fragments[block.write_roi]
+    fragments.materialize()
 
     # ensure we don't have IDs larger than the number of voxels (that would
     # break uniqueness of IDs below)
