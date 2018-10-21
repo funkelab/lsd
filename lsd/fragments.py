@@ -27,7 +27,9 @@ def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
     transform. Returns the fragments and the maximal ID in it.'''
 
     if affs.dtype == np.uint8:
+        logger.info("Assuming affinities are in [0,255]")
         max_affinity_value = 255.0
+        affs = affs.astype(np.float32)
     else:
         max_affinity_value = 1.0
 
