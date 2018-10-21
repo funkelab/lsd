@@ -101,7 +101,7 @@ def agglomerate_in_block(
 
     # get the sub-{affs, fragments, graph} to work on
     affs = affs.intersect(block.read_roi)
-    fragments = fragments.fill(affs.roi)
+    fragments = fragments.to_ndarray(affs.roi, fill_value=0)
     rag = rag_provider[affs.roi]
 
     # waterz uses memory proportional to the max label in fragments, therefore

@@ -106,18 +106,19 @@ def watershed_in_block(
 
     logger.debug("reading affs from %s", block.read_roi)
     affs = affs.intersect(block.read_roi)
+    affs.materialize()
 
     if mask is not None:
 
         logger.debug("reading mask from %s", block.read_roi)
-        mask = mask.fill(affs.roi)
+        mask = mask.to_ndarray(affs.roi, fill_value=0)
         logger.debug("masking affinities")
-        affs.data *= mask.data
+        affs.data *= mask
 
     # extract fragments
     fragments_data, n = watershed_from_affinities(affs.data, fragments_in_xy=fragments_in_xy)
     if mask is not None:
-        fragments_data *= mask.data.astype(np.uint64)
+        fragments_data *= mask.astype(np.uint64)
     fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
 
     # crop fragments to write_roi
