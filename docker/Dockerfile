@@ -78,7 +78,7 @@ RUN python setup.py install
 
 ENV ZARR_ROOT=/src/zarr
 ENV ZARR_REPOSITORY=https://github.com/funkey/zarr
-ENV ZARR_REVISION=eb5c17cb1061f759d2644b15942b98497eefbadd
+ENV ZARR_REVISION=9ddf849a6e3329f5ff361ebf6156712926e2fdfe
 
 WORKDIR ${ZARR_ROOT}
 RUN git clone ${ZARR_REPOSITORY} . && \
@@ -88,7 +88,7 @@ RUN python setup.py install
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=2588ee7d9f51670bc6f6a211ae4d65279ed57ded
+ENV GUNPOWDER_REVISION=d0e187598c7a6572a307c3a509a3bc019ef36473
 
 WORKDIR ${GUNPOWDER_ROOT}
 RUN git clone ${GUNPOWDER_REPOSITORY} . && \
@@ -110,6 +110,7 @@ ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 
 RUN pip install mahotas
 RUN pip install pymongo
+RUN pip install distributed --upgrade
 
 # install lsd
 
