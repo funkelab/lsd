@@ -99,7 +99,7 @@ ENV PYTHONPATH ${GUNPOWDER_ROOT}:$PYTHONPATH
 
 ENV DAISY_ROOT=/src/daisy
 ENV DAISY_REPOSITORY=https://github.com/funkey/daisy
-ENV DAISY_REVISION=0ef112543ec7ee230b3201c047e004e308f9d667
+ENV DAISY_REVISION=79e98eda06a01d0d8d1b348421960f400613cdea
 
 WORKDIR ${DAISY_ROOT}
 RUN git clone ${DAISY_REPOSITORY} . && \
@@ -109,6 +109,7 @@ RUN python setup.py build_ext --inplace
 ENV PYTHONPATH ${DAISY_ROOT}:$PYTHONPATH
 
 RUN pip install mahotas
+RUN pip install pymongo
 
 # install lsd
 
