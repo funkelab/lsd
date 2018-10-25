@@ -71,13 +71,15 @@ class LsdAgglomeration(object):
     def merge_until(self, threshold, max_merges=-1):
         '''Merge until the given threshold. Since edges are scored by how much
         they decrease the distance to ``target_lsds``, a threshold of 0 should
-        be optimal.'''
+        be optimal.
+
+        Returns the merge history.'''
 
         self.__log_info("Merging until %f...", threshold)
 
         merge_func = lambda _, src, dst: self.__merge_nodes(src, dst)
         weight_func = lambda _g, _s, u, v: self.__score_merge(u, v)
-        num_merges = merge_hierarchical(
+        merge_history = merge_hierarchical(
             self.fragments,
             self.rag,
             thresh=threshold,
@@ -90,7 +92,7 @@ class LsdAgglomeration(object):
 
         self.__log_info("Finished merging")
 
-        return num_merges
+        return merge_history
 
     def get_segmentation(self):
         '''Return the segmentation obtained so far by calls to

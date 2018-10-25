@@ -112,12 +112,13 @@ def merge_hierarchical(labels, rag, thresh, rag_copy, in_place_merge,
         data['heap item'] = heap_item
 
     num_merges = 0
+    merge_history = []
     while (
         len(edge_heap) > 0 and
         edge_heap[0][0] < thresh and
         (max_merges < 0 or num_merges < max_merges)):
 
-        _, n1, n2, valid = heapq.heappop(edge_heap)
+        score, n1, n2, valid = heapq.heappop(edge_heap)
 
         # Ensure popped edge is valid, if not, the edge is discarded
         if valid:
@@ -141,9 +142,15 @@ def merge_hierarchical(labels, rag, thresh, rag_copy, in_place_merge,
             _revalidate_node_edges(rag, new_id, edge_heap)
 
             num_merges += 1
+            merge_history.append({
+                'a': n1,
+                'b': n2,
+                'c': new_id,
+                'score': score
+            })
 
     if not return_segmenation:
-        return num_merges
+        return merge_history
 
     label_map = np.arange(labels.max() + 1)
     for ix, (n, d) in enumerate(rag.nodes(data=True)):
