@@ -4,6 +4,9 @@ import numpy as np
 
 def replace_values(array, old_values, new_values):
 
+    old_values = np.array(old_values)
+    new_values = np.array(new_values)
+
     max_old_value = old_values.max()
 
     if max_old_value < 1024**3:
