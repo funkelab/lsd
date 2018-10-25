@@ -1,6 +1,7 @@
 import mahotas
 import numpy as np
 import logging
+import waterz
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
 
@@ -22,7 +23,11 @@ def watershed(lsds, sigma, return_seeds=False, return_distances=False):
 
     return ret
 
-def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
+def watershed_from_affinities(
+        affs,
+        fragments_in_xy=False,
+        return_seeds=False,
+        epsilon_agglomerate=0):
     '''Extract initial fragments from affinities using a watershed
     transform. Returns the fragments and the maximal ID in it.'''
 
@@ -63,16 +68,32 @@ def watershed_from_affinities(affs, fragments_in_xy=False, return_seeds=False):
         if return_seeds:
             ret += (seeds,)
 
-        return ret
-
     else:
 
         boundary_mask = np.mean(affs, axis=0)>0.5*max_affinity_value
         boundary_distances = distance_transform_edt(boundary_mask)
 
-        return watershed_from_boundary_distance(
+        ret = watershed_from_boundary_distance(
             boundary_distances,
             return_seeds)
+
+    if epsilon_agglomerate > 0:
+
+        logger.info(
+            "Performing initial fragment agglomeration until %f",
+            epsilon_agglomerate)
+
+        generator = waterz.agglomerate(
+                affs=affs/max_affinity_value,
+                thresholds=[epsilon_agglomerate],
+                fragments=fragments,
+                scoring_function='OneMinus<HistogramQuantileAffinity<RegionGraphType, 25, ScoreValue, 256, false>>',
+                discretize_queue=256,
+                return_merge_history=False,
+                return_region_graph=False)
+        fragments[:] = next(generator)
+
+    return ret
 
 def watershed_from_boundary_distance(
         boundary_distances,

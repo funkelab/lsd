@@ -16,7 +16,7 @@ def parallel_aff_agglomerate(
         merge_function,
         threshold,
         num_workers):
-    '''Extract fragments from affinities using watershed.
+    '''Agglomerate fragments in parallel using ``waterz``.
 
     Args:
 

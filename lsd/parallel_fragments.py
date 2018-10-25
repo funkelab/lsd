@@ -16,6 +16,7 @@ def parallel_watershed(
         fragments_out,
         num_workers,
         fragments_in_xy=False,
+        epsilon_agglomerate=0,
         mask=None):
     '''Extract fragments from affinities using watershed.
 
@@ -51,6 +52,11 @@ def parallel_watershed(
 
             Whether to extract fragments for each xy-section separately.
 
+        epsilon_agglomerate (``float``):
+
+            Perform an initial waterz agglomeration on the extracted fragments
+            to this threshold. Skip if 0 (default).
+
         mask (`class:daisy.Array`):
 
             A dataset containing a mask. If given, fragments are only extracted
@@ -82,6 +88,7 @@ def parallel_watershed(
             rag_provider,
             fragments_out,
             fragments_in_xy,
+            epsilon_agglomerate,
             mask),
         lambda b: block_done(b, rag_provider),
         num_workers=num_workers,
@@ -100,6 +107,7 @@ def watershed_in_block(
         rag_provider,
         fragments_out,
         fragments_in_xy,
+        epsilon_agglomerate,
         mask):
 
     total_roi = affs.roi
@@ -116,7 +124,10 @@ def watershed_in_block(
         affs.data *= mask
 
     # extract fragments
-    fragments_data, n = watershed_from_affinities(affs.data, fragments_in_xy=fragments_in_xy)
+    fragments_data, n = watershed_from_affinities(
+        affs.data,
+        fragments_in_xy=fragments_in_xy,
+        epsilon_agglomerate=epsilon_agglomerate)
     if mask is not None:
         fragments_data *= mask.astype(np.uint64)
     fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
