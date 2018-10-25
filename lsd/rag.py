@@ -1,5 +1,7 @@
+from __future__ import absolute_import
 from networkx import Graph, connected_components
 from scipy.ndimage.measurements import center_of_mass
+from .labels import replace_values
 import copy
 import numpy as np
 import skimage.future
@@ -206,12 +208,12 @@ class Rag(skimage.future.graph.RAG):
 
     def __relabel(self, array, components, component_labels):
 
-        values_map = np.arange(int(array.max() + 1), dtype=array.dtype)
+        old_values = []
+        new_values = []
 
         for component, label in zip(components, component_labels):
             for c in component:
-                if c < len(values_map):
-                    values_map[c] = label
+                old_values.append(c)
+                new_values.append(label)
 
-        array[:] = values_map[array]
-
+        array[:] = replace_values(array, old_values, new_values)
