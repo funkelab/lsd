@@ -125,9 +125,8 @@ def agglomerate_in_block(
     # create a merge tree from the merge history
     merge_tree = MergeTree(np.unique(fragments))
     for merge in merge_history:
-
         a, b, c, score = merge['a'], merge['b'], merge['c'], merge['score']
-        merge_tree.merge(a, b, c, score)
+        merge_tree.merge(a, b, c, float(score))
 
     # mark edges in original RAG with score at time of merging
     logger.debug("marking merged edges...")
