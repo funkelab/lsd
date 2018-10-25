@@ -129,11 +129,6 @@ class Rag(skimage.future.graph.RAG):
         # relabel fragments of the same connected components to match merged RAG
         self.__relabel(fragments, components, segments)
 
-    def copy(self):
-        '''Return a deep copy of this RAG.'''
-
-        return copy.deepcopy(self)
-
     def __find_edge_centers(self, fragments):
         '''Get the center of an edge as the mean of the fragment centroids.'''
 

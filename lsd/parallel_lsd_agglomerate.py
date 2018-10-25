@@ -1,156 +1,148 @@
 from __future__ import absolute_import
 from .agglomerate import LsdAgglomeration
-from daisy import Coordinate, Roi, run_blockwise
+from .merge_tree import MergeTree
+import daisy
 import logging
+import numpy as np
+import skimage.future
 
 logger = logging.getLogger(__name__)
 
-class ParallelLsdAgglomeration(object):
-    '''Create a local shape descriptor agglomerator for parallel agglomeration.
-
-    For large volumes, ``rag``, ``fragments``, and ``target_lsds`` should be
-    held in an out-of-memory datastructure that supports slicing to read
-    subgraphs/subarrays.
+def parallel_lsd_agglomerate(
+        lsds,
+        fragments,
+        rag_provider,
+        lsd_extractor,
+        block_size,
+        context,
+        num_workers):
+    '''Agglomerate fragments in parallel using only the shape descriptors.
 
     Args:
 
+        lsds (`class:daisy.Array`):
+
+            An array containing the LSDs.
+
+        fragments (`class:daisy.Array`):
+
+            An array containing fragments.
+
         rag_provider (`class:SharedRagProvider`):
 
-            A RAG provider to query for subgraphs. Results will be written back
-            to this provider in mutually exclusive writes.
-
-        fragments (array-like):
-
-            Label array of the nodes in the RAG provided by ``rag_provider``.
-
-        target_lsds (array-like):
-
-            The local shape descriptors to match.
+            A RAG provider to read nodes from and write found edges to.
 
         lsd_extractor (``LsdExtractor``):
 
             The local shape descriptor object used to compute the difference
             between the segmentation and the target LSDs.
 
-        block_write_size (``tuple`` of ``int``):
+        block_size (``tuple`` of ``int``):
 
-            The write size of the blocks processed in parallel in world units.
+            The size of the blocks to process in parallel, in world units.
 
-            Note that due to context needed to compute the LSDs the actual read
-            size per block is larger. The necessary context is automatically
-            determined from the given ``lsd_extractor``. Results will only be
-            computed and written back for blocks that fit entirely into the
-            total ROI.
+        context (``tuple`` of ``int``):
 
-        block_done_function (function):
-
-            A function that is passed a `class:Roi` and should return ``True``
-            if the block represented by this ROI was already processed. Only
-            blocks for which this function returns ``False`` are processed.
+            The context to consider for agglomeration, in world units.
 
         num_workers (``int``):
 
-            The number of blocks to process in parallel.
+            The number of parallel workers.
 
-        voxel_size (``tuple`` of ``int``, optional):
+    Returns:
 
-            The voxel size of ``fragments``. Defaults to 1.
+        True, if all tasks succeeded.
     '''
 
-    def __init__(
-            self,
+    assert fragments.data.dtype == np.uint64
+
+    shape = lsds.shape[1:]
+    context = daisy.Coordinate(context)
+
+    total_roi = lsds.roi.grow(context, context)
+    read_roi = daisy.Roi((0,)*lsds.roi.dims(), block_size).grow(context, context)
+    write_roi = daisy.Roi((0,)*lsds.roi.dims(), block_size)
+
+    return daisy.run_blockwise(
+        total_roi,
+        read_roi,
+        write_roi,
+        lambda b: agglomerate_in_block(
+            lsds,
+            fragments,
             rag_provider,
-            fragments,
-            target_lsds,
             lsd_extractor,
-            block_write_size,
-            block_done_function,
-            num_workers,
-            voxel_size=None):
+            b),
+        lambda b: block_done(b, rag_provider),
+        num_workers=num_workers,
+        read_write_conflict=False,
+        fit='shrink')
 
-        self.rag_provider = rag_provider
-        self.fragments = fragments
-        self.target_lsds = target_lsds
-        self.lsd_extractor = lsd_extractor
-        self.block_write_size = block_write_size
-        self.block_done_function = block_done_function
-        self.num_workers = num_workers
-        self.voxel_size = voxel_size
+def block_done(block, rag_provider):
 
-    def merge_until(self, threshold, max_merges=-1):
-        '''Merge until the given threshold. Since edges are scored by how much
-        they decrease the distance to ``target_lsds``, a threshold of 0 should
-        be optimal. Returns True if all tasks succeeded.'''
+    rag = rag_provider[block.write_roi]
+    return rag.number_of_edges() > 0 or rag.number_of_nodes() <= 1
 
-        logger.info("Merging until %f...", threshold)
+def agglomerate_in_block(
+        lsds,
+        fragments,
+        rag_provider,
+        lsd_extractor,
+        block):
 
-        dims = len(self.fragments.shape)
-        if not self.voxel_size:
-            self.voxel_size = Coordinate((1,)*dims)
+    logger.info(
+        "Agglomerating in block %s with context of %s",
+        block.write_roi, block.read_roi)
 
-        voxel_size = self.voxel_size
+    # get the sub-{lsds, fragments, graph} to work on
+    lsds = lsds.intersect(block.read_roi)
+    fragments = fragments.to_ndarray(lsds.roi, fill_value=0)
+    rag = rag_provider[lsds.roi]
+    voxel_size = lsds.voxel_size
+    lsds = lsds.to_ndarray()
 
-        context = Coordinate(self.lsd_extractor.get_context())
+    # So far, 'rag' does not contain any edges belonging to write_roi (there
+    # might be a few edges from neighboring blocks, though). Use the fragments
+    # to get an initial RAG (merge_rag) which we also use for agglomeration.
+    merge_rag = skimage.future.graph.RAG(fragments)
 
-        # assure that context is a multiple of voxel size
-        one = Coordinate((1,)*len(context))
-        context = ((context - one)/voxel_size + one)*voxel_size
+    # Keep the original RAG edges
+    for (u, v) in merge_rag.edges():
+        # this might overwrite already existing edges from neighboring blocks,
+        # but that's fine, we only write attributes for edges within write_roi
+        rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
 
-        total_roi = Roi((0,)*dims, voxel_size*self.fragments.shape)
-        write_roi = Roi((0,)*dims, self.block_write_size)
-        read_roi = write_roi.grow(context, context)
+    # agglomerate to match target LSDs
+    agglomeration = LsdAgglomeration(
+        fragments,
+        lsds,
+        lsd_extractor,
+        voxel_size=voxel_size,
+        rag=merge_rag,
+        log_prefix='%s: '%block.write_roi)
+    merge_history = agglomeration.merge_until(0)
 
-        assert (write_roi/voxel_size)*voxel_size == write_roi, (
-            "block_write_size needs to be a multiple of voxel_size")
-        assert (write_roi/voxel_size)*voxel_size == write_roi, (
-            "read_roi needs to be a multiple of voxel_size")
+    # create a merge tree from the merge history
+    merge_tree = MergeTree(np.unique(fragments))
+    for merge in merge_history:
 
-        return run_blockwise(
-            total_roi,
-            read_roi,
-            write_roi,
-            lambda r, w: self.__agglomerate_block(r, w),
-            self.block_done_function,
-            self.num_workers)
+        a, b, c, score = merge['a'], merge['b'], merge['c'], merge['score']
+        merge_tree.merge(
+            fragment_relabel_map[a],
+            fragment_relabel_map[b],
+            fragment_relabel_map[c],
+            score)
 
-    def __agglomerate_block(self, read_roi, write_roi):
+    # mark edges in original RAG with score at time of merging
+    logger.debug("marking merged edges...")
+    num_merged = 0
+    for u, v, data in rag.edges(data=True):
+        merge_score = merge_tree.find_merge(u, v)
+        data['merge_score'] = merge_score
+        if merge_score is not None:
+            num_merged += 1
 
-        logger.info(
-            "Agglomerating in block %s with context of %s",
-            write_roi, read_roi)
+    logger.info("merged %d edges", num_merged)
 
-        read_roi_voxels = read_roi/self.voxel_size
-        write_roi_voxels = write_roi/self.voxel_size
-
-        # get the sub-{graph, fragments, LSDs} to work on
-        rag = self.rag_provider[read_roi.to_slices()]
-        fragments = self.fragments[read_roi_voxels.to_slices()]
-        target_lsds = self.target_lsds[(slice(None),) + read_roi_voxels.to_slices()]
-
-        # agglomerate on a copy of the original RAG
-        # (agglomeration changes the RAG)
-        merge_rag = rag.copy()
-
-        # contract previously merged nodes and fragments
-        merge_rag.contract_merged_nodes(self.fragments)
-
-        # agglomerate to match target LSDs
-        agglomeration = LsdAgglomeration(
-            fragments,
-            target_lsds,
-            self.lsd_extractor,
-            voxel_size=self.voxel_size,
-            rag=merge_rag,
-            log_prefix='%s: '%write_roi)
-        num_merged = agglomeration.merge_until(0)
-
-        # mark edges in original RAG as 'merged'
-        rag.label_merged_edges(merge_rag)
-
-        # mark the block as 'agglomerated'
-        rag.set_edge_attributes('agglomerated', 1)
-
-        logger.info("merged %d edges", num_merged)
-
-        # write back results (only within write_roi)
-        rag.sync_edge_attributes(write_roi)
+    # write back results (only within write_roi)
+    rag.sync_edges(block.write_roi)

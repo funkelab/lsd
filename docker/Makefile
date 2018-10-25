@@ -1,4 +1,4 @@
-TAG="funkey/lsd:v0.5"
+TAG="funkey/lsd:v0.6"
 
 .PHONY: default push
 default:
