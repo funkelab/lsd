@@ -88,7 +88,7 @@ RUN python setup.py install
 
 ENV GUNPOWDER_ROOT=/src/gunpowder
 ENV GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-ENV GUNPOWDER_REVISION=1d583c58acc89414f5e9b756e4157ac6a1dd44f7
+ENV GUNPOWDER_REVISION=92f1acfcb7ada08fbf1ac55cef160321d2236956
 
 WORKDIR ${GUNPOWDER_ROOT}
 RUN git clone ${GUNPOWDER_REPOSITORY} . && \
