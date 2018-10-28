@@ -10,7 +10,13 @@ logger = logging.getLogger(__name__)
 
 class MongoDbSubRag(SubRag):
 
-    def __init__(self, db_name, host=None, mode='r+'):
+    def __init__(
+            self,
+            db_name,
+            host=None,
+            mode='r+',
+            nodes_collection='nodes',
+            edges_collection='edges'):
 
         super(SubRag, self).__init__()
 
@@ -20,8 +26,8 @@ class MongoDbSubRag(SubRag):
 
         self.client = MongoClient(self.host)
         self.database = self.client[db_name]
-        self.nodes_collection = self.database['nodes']
-        self.edges_collection = self.database['edges']
+        self.nodes_collection = self.database[nodes_collection]
+        self.edges_collection = self.database[edges_collection]
 
     def _contains(self, roi, edge):
 
@@ -108,11 +114,19 @@ class MongoDbRagProvider(SharedRagProvider):
     '''A shared region adjacency graph stored in an SQLite file.
     '''
 
-    def __init__(self, db_name, host=None, mode='r+'):
+    def __init__(
+            self,
+            db_name,
+            host=None,
+            mode='r+',
+            nodes_collection='nodes',
+            edges_collection='edges'):
 
         self.db_name = db_name
         self.host = host
         self.mode = mode
+        self.nodes_collection_name = nodes_collection
+        self.edges_collection_name = edges_collection
         self.client = None
         self.database = None
         self.nodes = None
@@ -121,13 +135,23 @@ class MongoDbRagProvider(SharedRagProvider):
         try:
 
             self.__connect()
+            self.__open_db()
 
             if mode == 'w':
-                logger.info("dropping database %s", db_name)
-                self.client.drop_database(db_name)
 
-            if self.db_name not in self.client.list_database_names():
-                self.__setup_db()
+                logger.info(
+                    "dropping collections %s and %s",
+                    self.nodes_collection_name,
+                    self.edges_collection_name)
+
+                self.__open_collections()
+                self.nodes.drop()
+                self.edges.drop()
+
+            if (
+                    nodes_collection not in self.database.collection_names() or
+                    edges_collection not in self.database.collection_names()):
+                self.__create_collections()
 
         finally:
 
@@ -140,8 +164,11 @@ class MongoDbRagProvider(SharedRagProvider):
     def __open_db(self):
 
         self.database = self.client[self.db_name]
-        self.nodes = self.database['nodes']
-        self.edges = self.database['edges']
+
+    def __open_collections(self):
+
+        self.nodes = self.database[self.nodes_collection_name]
+        self.edges = self.database[self.edges_collection_name]
 
     def __disconnect(self):
 
@@ -151,9 +178,10 @@ class MongoDbRagProvider(SharedRagProvider):
         self.client.close()
         self.client = None
 
-    def __setup_db(self):
+    def __create_collections(self):
 
         self.__open_db()
+        self.__open_collections()
 
         self.nodes.create_index(
             [
@@ -204,6 +232,7 @@ class MongoDbRagProvider(SharedRagProvider):
 
             self.__connect()
             self.__open_db()
+            self.__open_collections()
 
             # get all nodes within roi
             nodes = self.__read_nodes(roi)
@@ -237,7 +266,12 @@ class MongoDbRagProvider(SharedRagProvider):
             self.__disconnect()
 
         # create the sub-RAG
-        graph = MongoDbSubRag(self.db_name, self.host, self.mode)
+        graph = MongoDbSubRag(
+            self.db_name,
+            self.host,
+            self.mode,
+            self.nodes_collection_name,
+            self.edges_collection_name)
         graph.add_nodes_from(node_list)
         graph.add_edges_from(edge_list)
 
