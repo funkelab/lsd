@@ -115,7 +115,7 @@ def agglomerate_in_block(
     logger.debug("fragments num: %d", n)
 
     # convert affs to float32 ndarray with values between 0 and 1
-    affs = affs.to_ndarray()
+    affs = affs.to_ndarray()[0:3]
     if affs.dtype == np.uint8:
         affs = affs.astype(np.float32)/255.0
 
