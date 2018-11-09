@@ -224,6 +224,67 @@ class MongoDbRagProvider(SharedRagProvider):
 
         return nodes
 
+    def num_nodes(self, roi):
+
+        assert roi.dims() == 3, "Sorry, MongoDbRagProvider backend does only 3D"
+
+        try:
+
+            self.__connect()
+            self.__open_db()
+            self.__open_collections()
+
+            bz, by, bx = roi.get_begin()
+            ez, ey, ex = roi.get_end()
+
+            num = self.nodes.count(
+                {
+                    'center_z': { '$gte': bz, '$lt': ez },
+                    'center_y': { '$gte': by, '$lt': ey },
+                    'center_x': { '$gte': bx, '$lt': ex }
+                })
+
+        finally:
+
+            self.__disconnect()
+
+        return num
+
+    def has_edges(self, roi):
+
+        assert roi.dims() == 3, "Sorry, MongoDbRagProvider backend does only 3D"
+
+        try:
+
+            self.__connect()
+            self.__open_db()
+            self.__open_collections()
+
+            bz, by, bx = roi.get_begin()
+            ez, ey, ex = roi.get_end()
+
+            node = self.nodes.find_one(
+                {
+                    'center_z': { '$gte': bz, '$lt': ez },
+                    'center_y': { '$gte': by, '$lt': ey },
+                    'center_x': { '$gte': bx, '$lt': ex }
+                })
+
+            # no nodes -> no edges
+            if node is None:
+                return False
+
+            edges = self.edges.find(
+                {
+                    'u': node['id']
+                })
+
+        finally:
+
+            self.__disconnect()
+
+        return edges.count() > 0
+
     def __getitem__(self, roi):
 
         assert roi.dims() == 3, "Sorry, MongoDbRagProvider backend does only 3D"
