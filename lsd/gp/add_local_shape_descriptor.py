@@ -27,7 +27,9 @@ class AddLocalShapeDescriptor(BatchFilter):
             the shape descriptor in world units. This will be the standard
             deviation of a Gaussian kernel or the radius of the sphere.
 
-        mode (string): Either ``gaussian`` or ``sphere``. Specifies how to
+        mode (string): Only ``gaussian`` mode supported for derivative
+            based lsds. Keep for compatibility reasons but throw error 
+            if anything else than gaussian is provided. Specifies how to
             accumulate local statistics: ``gaussian`` uses Gaussian convolution
             to compute a weighed average of statistics inside an object.
             ``sphere`` accumulates values in a sphere.
@@ -120,8 +122,9 @@ class AddLocalShapeDescriptor(BatchFilter):
             seg_roi.get_offset())/self.voxel_size
 
         descriptor = self.extractor.get_descriptors(
-            segmentation_array.data,
-            voxel_roi_in_seg)
+            segmentation=segmentation_array.data,
+            voxel_size=self.voxel_size,
+            roi=voxel_roi_in_seg)
 
         # create descriptor array
         descriptor_spec = self.spec[self.descriptor].copy()
