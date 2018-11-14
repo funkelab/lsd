@@ -210,18 +210,22 @@ class LsdExtractor(object):
         d_zx = convolve(d_z, k_x, mode='constant')
         d_yx = convolve(d_y, k_x, mode='constant')
 
-        # normalize s.t. peak value of a single gaussian is 1. Note that this
-        # implies a value > 1 for addition of multiple gaussians. 
-        # Change to max normalization if [0,1] range required.
-        norm_fac_0 = np.sqrt((2*np.pi)**3 * np.prod([s**2 for s in sigma_voxel]))
-        soft_mask *= norm_fac_0
+        # Max normalization for each instance:
+        soft_mask /= np.max(np.abs(soft_mask))
+        
+        d_max = np.max(np.abs(np.stack([d_z, d_y, d_x])))
+        d_z /= d_max
+        d_y /= d_max
+        d_x /= d_max
 
-        """
-        TODO: Normalize derivatives according to max derivative of 
-        single gaussian or alternative method. First derived at max 
-        point scales as 1/sigma (x_max = +- sigma) while second derivative scales as
-        1/sigma**2 (x_max = 0).
-        """
+        dd_max = np.max(np.abs(np.stack([d_zz, d_yy, d_xx,
+                                         d_zy, d_zx, d_yx])))
+        d_zz /= dd_max
+        d_yy /= dd_max
+        d_xx /= dd_max
+        d_zy /= dd_max
+        d_zx /= dd_max
+        d_yx /= dd_max
 
         d = np.stack([d_z, d_y, d_x,
                       d_zz, d_yy, d_xx,
