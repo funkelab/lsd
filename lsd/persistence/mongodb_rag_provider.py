@@ -206,7 +206,7 @@ class MongoDbRagProvider(SharedRagProvider):
             name='incident',
             unique=True)
 
-    def __read_nodes(self, roi):
+    def read_nodes(self, roi):
         '''Return a list of nodes within roi.
         '''
 
@@ -215,12 +215,22 @@ class MongoDbRagProvider(SharedRagProvider):
         bz, by, bx = roi.get_begin()
         ez, ey, ex = roi.get_end()
 
-        nodes = self.nodes.find(
-            {
-                'center_z': { '$gte': bz, '$lt': ez },
-                'center_y': { '$gte': by, '$lt': ey },
-                'center_x': { '$gte': bx, '$lt': ex }
-            })
+        try:
+
+            self.__connect()
+            self.__open_db()
+            self.__open_collections()
+
+            nodes = self.nodes.find(
+                {
+                    'center_z': { '$gte': bz, '$lt': ez },
+                    'center_y': { '$gte': by, '$lt': ey },
+                    'center_x': { '$gte': bx, '$lt': ex }
+                })
+
+        finally:
+
+            self.__disconnect()
 
         return nodes
 
@@ -289,14 +299,14 @@ class MongoDbRagProvider(SharedRagProvider):
 
         assert roi.dims() == 3, "Sorry, MongoDbRagProvider backend does only 3D"
 
+        # get all nodes within roi
+        nodes = self.read_nodes(roi)
+
         try:
 
             self.__connect()
             self.__open_db()
             self.__open_collections()
-
-            # get all nodes within roi
-            nodes = self.__read_nodes(roi)
 
             # create a list of nodes and their attributes
             node_list = [
