@@ -75,9 +75,9 @@ class AddLocalShapeDescriptor(BatchFilter):
             self.provides(self.mask, spec.copy())
 
         if self.mode == 'gaussian':
-            self.context = tuple(s*3.0 for s in self.sigma)
+            self.context = tuple(s*3.0*v for s,v in zip(self.sigma, self.voxel_size))
         elif self.mode == 'sphere':
-            self.context = tuple(self.sigma)
+            raise NotImplementedError("Only gaussian mode supported for derivative based lsds.")
         else:
             raise RuntimeError("Unkown mode %s"%mode)
 
