@@ -7,6 +7,7 @@ from .parallel_fragments import parallel_watershed
 from .parallel_lsd_agglomerate import parallel_lsd_agglomerate
 from .rag import Rag
 from .shared_rag_provider import SharedRagProvider, SubRag
+from .connected_components import connected_components
 from . import fragments
 from . import gp
 from . import persistence
