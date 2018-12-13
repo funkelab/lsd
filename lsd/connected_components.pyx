@@ -14,9 +14,12 @@ def connected_components(
 
     num_nodes = nodes.shape[0]
     num_edges = edges.shape[0]
-    assert components.shape[0] == nodes.shape[0]
-    assert edges.shape[1] == 2
-    assert num_edges == len(scores)
+    assert components.shape[0] == nodes.shape[0], (
+        "components array has different shape than nodes array")
+    assert edges.shape[1] == 2, (
+        "edges array does not have two columns")
+    assert num_edges == len(scores), (
+        "number of edges does not match number of scores")
 
     # the C++ part assumes contiguous memory, make sure we have it (and do 
     # nothing, if we do)
