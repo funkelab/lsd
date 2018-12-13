@@ -28,16 +28,29 @@ find_connected_components(
 	}
 
 	// for each edge <= threshold
+	std::size_t num_edges_skipped = 0;
 	for (std::size_t i = 0; i < num_edges; i++) {
 
 		if (scores_data[i] > threshold)
 			continue;
 
+		auto it_u = node_to_set.find(edges_data[2*i]);
+		auto it_v = node_to_set.find(edges_data[2*i + 1]);
+
+		if (it_u == node_to_set.end() || it_v == node_to_set.end()) {
+
+			num_edges_skipped++;
+			continue;
+		}
+
 		// unite sets
-		std::size_t u = node_to_set[edges_data[2*i]];
-		std::size_t v = node_to_set[edges_data[2*i + 1]];
+		std::size_t u = it_u->second;
+		std::size_t v = it_v->second;
 		sets.union_set(u, v);
 	}
+
+	if (num_edges_skipped > 0)
+		std::cout << "skipped " << num_edges_skipped << " edges that had no corresponding node" << std::endl;
 
 	// for each node
 	for (std::size_t i = 0; i < num_nodes; i++) {
