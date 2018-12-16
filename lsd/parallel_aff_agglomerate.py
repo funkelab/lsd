@@ -1,5 +1,5 @@
 from .merge_tree import MergeTree
-from segment.arrays import relabel
+from funlib.segment.arrays import relabel
 import daisy
 import logging
 import numpy as np
