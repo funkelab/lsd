@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from networkx import Graph, connected_components
 from scipy.ndimage.measurements import center_of_mass
-from .labels import replace_values
+from segment.arrays import replace_values
 import copy
 import numpy as np
 import skimage.future

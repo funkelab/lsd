@@ -1,8 +1,8 @@
-from .labels import relabel
 from .merge_tree import MergeTree
+from segment.arrays import relabel
+import daisy
 import logging
 import numpy as np
-import daisy
 import waterz
 
 logger = logging.getLogger(__name__)

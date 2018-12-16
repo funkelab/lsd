@@ -1,10 +1,10 @@
 from __future__ import division
 from .fragments import watershed_from_affinities
-from .labels import relabel
 from scipy.ndimage.measurements import center_of_mass
+from segment.arrays import relabel
+import daisy
 import logging
 import numpy as np
-import daisy
 
 logger = logging.getLogger(__name__)
 

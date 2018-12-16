@@ -5,3 +5,4 @@ scikit-image
 requests
 gunpowder
 cython
+git+git://github.com/funkelab/segment@18cffadebfe766fa31804a4d35c5f9a493cf7154#egg=segment
