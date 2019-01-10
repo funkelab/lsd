@@ -12,3 +12,6 @@ build
 docker/lsd
 docker/requirements.txt
 docker/setup.py
+singularity/lsd
+singularity/requirements.txt
+singularity/setup.py
