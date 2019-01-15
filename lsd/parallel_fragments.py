@@ -8,6 +8,35 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+def upsample(a, factor):
+
+    for d, f in enumerate(factor):
+        a = np.repeat(a, f, axis=d)
+
+    return a
+
+def get_mask_data_in_roi(mask, roi, target_voxel_size):
+
+    assert mask.voxel_size.is_multiple_of(target_voxel_size), (
+        "Can not upsample from %s to %s" % (mask.voxel_size, target_voxel_size))
+
+    aligned_roi = roi.snap_to_grid(mask.voxel_size, mode='grow')
+    aligned_data = mask.to_ndarray(aligned_roi, fill_value=0)
+
+    if mask.voxel_size == target_voxel_size:
+        return aligned_data
+
+    factor = mask.voxel_size/target_voxel_size
+
+    upsampled_aligned_data = upsample(aligned_data, factor)
+
+    upsampled_aligned_mask = daisy.Array(
+        upsampled_aligned_data,
+        roi=aligned_roi,
+        voxel_size=target_voxel_size)
+
+    return upsampled_aligned_mask.to_ndarray(roi)
+
 def parallel_watershed(
         affs,
         rag_provider,
@@ -117,9 +146,9 @@ def watershed_in_block(
     if mask is not None:
 
         logger.debug("reading mask from %s", block.read_roi)
-        mask = mask.to_ndarray(affs.roi, fill_value=0)
+        mask_data = get_mask_data_in_roi(mask, affs.roi, affs.voxel_size)
         logger.debug("masking affinities")
-        affs.data *= mask
+        affs.data *= mask_data
 
     # extract fragments
     fragments_data, n = watershed_from_affinities(
@@ -127,7 +156,7 @@ def watershed_in_block(
         fragments_in_xy=fragments_in_xy,
         epsilon_agglomerate=epsilon_agglomerate)
     if mask is not None:
-        fragments_data *= mask.astype(np.uint64)
+        fragments_data *= mask_data.astype(np.uint64)
     fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
 
     # crop fragments to write_roi
