@@ -4,5 +4,5 @@ h5py
 scikit-image
 requests
 cython
-git+git://github.com/funkey/gunpowder@d58dd5f5946368dc5eeb4fd58cb3a0f0c9dc4d12#egg=gunpowder
+git+git://github.com/funkey/gunpowder@28fbe7914e235edc1eb15bfdf695da15ac48bb32#egg=gunpowder
 git+git://github.com/funkelab/funlib.segment@f703c426f5ea77b9f6a6519bd13f3d0e1ba8fb29#egg=funlib.segment
