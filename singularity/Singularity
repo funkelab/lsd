@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: tensorflow/tensorflow:1.3.0-gpu-py3
+From: ubuntu:18.04
 
 %setup
 mkdir -p ${SINGULARITY_ROOTFS}/src/malis
@@ -11,6 +11,7 @@ mkdir -p ${SINGULARITY_ROOTFS}/src/numcodecs
 mkdir -p ${SINGULARITY_ROOTFS}/src/zarr
 mkdir -p ${SINGULARITY_ROOTFS}/src/gunpowder
 mkdir -p ${SINGULARITY_ROOTFS}/src/daisy
+mkdir -p ${SINGULARITY_ROOTFS}/src/funlib
 mkdir -p ${SINGULARITY_ROOTFS}/src/lsd
 
 %files
@@ -25,15 +26,30 @@ maintainer funkej@janelia.hhmi.org
 
 # basic ubuntu packages
 
-apt-get update && apt-get install -y --no-install-recommends \
+apt update
+apt install -y --no-install-recommends \
 build-essential \
+ca-certificates \
 cmake \
 git \
 libmlpack-dev \
 liblzma-dev \
-python3-numpy \
 wget && \
 rm -rf /var/lib/apt/lists/*
+
+# install conda
+
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh -b -p /miniconda
+PATH="/miniconda/bin:$PATH"
+conda config --set always_yes yes --set changeps1 no
+conda update -q conda
+conda info -a
+conda install python=3.6
+
+# install tensorflow
+
+conda install tensorflow-gpu==1.3
 
 # dependencies for lsd
 
@@ -110,7 +126,7 @@ python setup.py install
 
 GUNPOWDER_ROOT=/src/gunpowder
 GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-GUNPOWDER_REVISION=92f1acfcb7ada08fbf1ac55cef160321d2236956
+GUNPOWDER_REVISION=422b328aff119495302231e177b4b64e0d6dbd53
 
 cd ${GUNPOWDER_ROOT}
 git clone ${GUNPOWDER_REPOSITORY} . && \
@@ -120,8 +136,8 @@ python setup.py build_ext --inplace
 PYTHONPATH=${GUNPOWDER_ROOT}:$PYTHONPATH
 
 DAISY_ROOT=/src/daisy
-DAISY_REPOSITORY=https://github.com/funkey/daisy
-DAISY_REVISION=dc14ee3d5395d9ec2bcaca032d7ed5c5d97f8c70
+DAISY_REPOSITORY=https://github.com/funkelab/daisy
+DAISY_REVISION=31642315d76383a1bb05161f5f6c4207a22c6a4f
 
 cd ${DAISY_ROOT}
 git clone ${DAISY_REPOSITORY} . && \
@@ -130,9 +146,19 @@ pip install -r requirements.txt
 python setup.py build_ext --inplace
 PYTHONPATH=${DAISY_ROOT}:$PYTHONPATH
 
+FUNLIB_ROOT=/src/funlib
+FUNLIB_REPOSITORY=https://github.com/funkelab/funlib.segment
+FUNLIB_REVISION=09246e7aed32210747800906846d03788ca10b81
+
+cd ${FUNLIB_ROOT}
+git clone ${FUNLIB_REPOSITORY} . && \
+git checkout ${FUNLIB_REVISION}
+pip install -r requirements.txt
+python setup.py build_ext --inplace
+PYTHONPATH=${FUNLIB_ROOT}:$PYTHONPATH
+
 pip install mahotas
 pip install pymongo
-pip install distributed --upgrade
 
 # install lsd
 
@@ -155,7 +181,10 @@ export GUNPOWDER_ROOT=/src/gunpowder
 export PYTHONPATH=${GUNPOWDER_ROOT}:$PYTHONPATH
 export DAISY_ROOT=/src/daisy
 export PYTHONPATH=${DAISY_ROOT}:$PYTHONPATH
+export FUNLIB_ROOT=/src/funlib
+export PYTHONPATH=${FUNLIB_ROOT}:$PYTHONPATH
 export PYTHONPATH=/src/lsd:$PYTHONPATH
+export PATH=/miniconda/bin:${PATH}
 
 %runscript
 exec /bin/bash "$@"

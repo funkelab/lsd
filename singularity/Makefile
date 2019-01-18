@@ -1,4 +1,4 @@
-TAG="lsd:v0.6"
+TAG="lsd:v0.8"
 
 .PHONY: default push
 default:
