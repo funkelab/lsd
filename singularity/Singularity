@@ -186,5 +186,9 @@ export PYTHONPATH=${FUNLIB_ROOT}:$PYTHONPATH
 export PYTHONPATH=/src/lsd:$PYTHONPATH
 export PATH=/miniconda/bin:${PATH}
 
+# disable threads for numpy and the like, they get into our way when we
+# pre-fetch batches using multiple processes
+export OMP_NUM_THREADS=1
+
 %runscript
 exec /bin/bash "$@"
