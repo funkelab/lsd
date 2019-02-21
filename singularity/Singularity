@@ -126,7 +126,7 @@ python setup.py install
 
 GUNPOWDER_ROOT=/src/gunpowder
 GUNPOWDER_REPOSITORY=https://github.com/funkey/gunpowder.git
-GUNPOWDER_REVISION=06dfc8f5527775e2dc741fd0f33898e3d02bc2c2
+GUNPOWDER_REVISION=b38c51520cd63b0896ee067dc211e5f71a11a8c7
 
 cd ${GUNPOWDER_ROOT}
 git clone ${GUNPOWDER_REPOSITORY} . && \
