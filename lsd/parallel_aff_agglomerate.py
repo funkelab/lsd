@@ -171,4 +171,4 @@ def agglomerate_in_block(
 
     # write back results (only within write_roi)
     logger.debug("writing to DB...")
-    rag.sync_edges(block.write_roi)
+    rag.write_edges(block.write_roi)

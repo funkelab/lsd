@@ -208,4 +208,4 @@ def watershed_in_block(
         )
         for node, c in fragment_centers.items()
     ])
-    rag.sync_nodes()
+    rag.write_nodes()
