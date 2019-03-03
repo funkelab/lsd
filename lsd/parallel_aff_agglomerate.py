@@ -142,7 +142,7 @@ def agglomerate_in_block(
         u, v = fragment_relabel_map[edge['u']], fragment_relabel_map[edge['v']]
         # this might overwrite already existing edges from neighboring blocks,
         # but that's fine, we only write attributes for edges within write_roi
-        rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
+        rag.add_edge(u, v, merge_score=None, agglomerated=True)
 
     # agglomerate fragments using affs
     _, merge_history, _ = next(generator)
