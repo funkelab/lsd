@@ -147,6 +147,10 @@ def agglomerate_in_block(
     # agglomerate fragments using affs
     _, merge_history, _ = next(generator)
 
+    # cleanup generator
+    for _, _, _ in generator:
+        pass
+
     # create a merge tree from the merge history
     merge_tree = MergeTree(fragment_relabel_map)
     for merge in merge_history:

@@ -93,6 +93,10 @@ def watershed_from_affinities(
                 return_region_graph=False)
         fragments[:] = next(generator)
 
+        # cleanup generator
+        for _ in generator:
+            pass
+
     return ret
 
 def watershed_from_boundary_distance(
