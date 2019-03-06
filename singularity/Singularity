@@ -11,7 +11,8 @@ mkdir -p ${SINGULARITY_ROOTFS}/src/numcodecs
 mkdir -p ${SINGULARITY_ROOTFS}/src/zarr
 mkdir -p ${SINGULARITY_ROOTFS}/src/gunpowder
 mkdir -p ${SINGULARITY_ROOTFS}/src/daisy
-mkdir -p ${SINGULARITY_ROOTFS}/src/funlib
+mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/seg
+mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/learn
 mkdir -p ${SINGULARITY_ROOTFS}/src/lsd
 
 %files
@@ -146,16 +147,27 @@ pip install -r requirements.txt
 python setup.py build_ext --inplace
 PYTHONPATH=${DAISY_ROOT}:$PYTHONPATH
 
-FUNLIB_ROOT=/src/funlib
-FUNLIB_REPOSITORY=https://github.com/funkelab/funlib.segment
-FUNLIB_REVISION=09246e7aed32210747800906846d03788ca10b81
+FUNLIB_SEG_ROOT=/src/funlib/seg
+FUNLIB_SEG_REPOSITORY=https://github.com/funkelab/funlib.segment
+FUNLIB_SEG_REVISION=09246e7aed32210747800906846d03788ca10b81
 
-cd ${FUNLIB_ROOT}
-git clone ${FUNLIB_REPOSITORY} . && \
-git checkout ${FUNLIB_REVISION}
+cd ${FUNLIB_SEG_ROOT}
+git clone ${FUNLIB_SEG_REPOSITORY} . && \
+git checkout ${FUNLIB_SEG_REVISION}
 pip install -r requirements.txt
 python setup.py build_ext --inplace
-PYTHONPATH=${FUNLIB_ROOT}:$PYTHONPATH
+PYTHONPATH=${FUNLIB_SEG_ROOT}:$PYTHONPATH
+
+FUNLIB_LEARN_ROOT=/src/funlib/learn
+FUNLIB_LEARN_REPOSITORY=https://github.com/funkelab/funlib.learn.tensorflow.git
+FUNLIB_LEARN_REVISION=e9f761ba9335782bec3e714a976c27aaf93c4bba
+
+cd ${FUNLIB_LEARN_ROOT}
+git clone ${FUNLIB_LEARN_REPOSITORY} . && \
+git checkout ${FUNLIB_LEARN_REVISION}
+pip install -r requirements.txt
+python setup.py build_ext --inplace
+PYTHONPATH=${FUNLIB_LEARN_ROOT}:$PYTHONPATH
 
 pip install mahotas
 pip install pymongo
@@ -181,8 +193,10 @@ export GUNPOWDER_ROOT=/src/gunpowder
 export PYTHONPATH=${GUNPOWDER_ROOT}:$PYTHONPATH
 export DAISY_ROOT=/src/daisy
 export PYTHONPATH=${DAISY_ROOT}:$PYTHONPATH
-export FUNLIB_ROOT=/src/funlib
-export PYTHONPATH=${FUNLIB_ROOT}:$PYTHONPATH
+export FUNLIB_SEG_ROOT=/src/funlib/seg
+export FUNLIB_LEARN_ROOT=/src/funlib/learn
+export PYTHONPATH=${FUNLIB_LEARN_ROOT}:$PYTHONPATH
+export PYTHONPATH=${FUNLIB_SEG_ROOT}:$PYTHONPATH
 export PYTHONPATH=/src/lsd:$PYTHONPATH
 export PATH=/miniconda/bin:${PATH}
 
