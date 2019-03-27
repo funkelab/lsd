@@ -75,7 +75,8 @@ class AddLocalShapeDescriptor(BatchFilter):
             self.provides(self.mask, spec.copy())
 
         if self.mode == 'gaussian':
-            self.context = tuple(np.lcm(s*3.0,v)) for s,v in zip(self.sigma, self.voxel_size))
+            self.context = tuple(s*3 for s in self.sigma)
+            
         elif self.mode == 'sphere':
             raise NotImplementedError("Only gaussian mode supported for derivative based lsds.")
         else:
@@ -89,6 +90,7 @@ class AddLocalShapeDescriptor(BatchFilter):
             context_roi = request[self.descriptor].roi.grow(
                 self.context,
                 self.context)
+            context_roi = context_roi.snap_to_grid(self.voxel_size)
             grown_roi = request[self.segmentation].roi.union(context_roi)
             request[self.segmentation].roi = grown_roi
 
