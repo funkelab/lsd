@@ -1,4 +1,6 @@
+from Cython.Distutils import build_ext
 from distutils.core import setup
+from distutils.extension import Extension
 
 setup(
         name='lsd',
@@ -12,5 +14,15 @@ setup(
             'lsd',
             'lsd.gp',
             'lsd.persistence',
-        ]
+        ],
+        ext_modules=[
+            Extension(
+                'lsd.merge_tree',
+                sources=[
+                    'lsd/merge_tree.pyx'
+                ],
+                extra_compile_args=['-O3'],
+                language='c++')
+        ],
+        cmdclass={'build_ext': build_ext}
 )
