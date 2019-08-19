@@ -29,7 +29,13 @@ def watershed_from_affinities(
         return_seeds=False,
         epsilon_agglomerate=0):
     '''Extract initial fragments from affinities using a watershed
-    transform. Returns the fragments and the maximal ID in it.'''
+    transform. Returns the fragments and the maximal ID in it.
+
+    Returns:
+
+        (fragments, max_id)
+        or
+        (fragments, max_id, seeds) if return_seeds == True'''
 
     if affs.dtype == np.uint8:
         logger.info("Assuming affinities are in [0,255]")
@@ -76,6 +82,8 @@ def watershed_from_affinities(
         ret = watershed_from_boundary_distance(
             boundary_distances,
             return_seeds)
+
+        fragments = ret[0]
 
     if epsilon_agglomerate > 0:
 
