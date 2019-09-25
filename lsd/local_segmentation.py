@@ -46,8 +46,8 @@ class LocalSegmentationExtractor:
         values_map = np.array(
             [
                 [fragment, i]
-                for i in range(len(components))
-                for fragment in components[i]
+                for i in range(1, len(components)+1)
+                for fragment in components[i-1]
             ],
             dtype=np.uint64,
         )
