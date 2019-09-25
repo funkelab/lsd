@@ -25,9 +25,9 @@ def watershed(lsds, sigma, return_seeds=False, return_distances=False):
 
 def watershed_from_affinities(
         affs,
+        max_affinity_value,
         fragments_in_xy=False,
-        return_seeds=False,
-        epsilon_agglomerate=0):
+        return_seeds=False):
     '''Extract initial fragments from affinities using a watershed
     transform. Returns the fragments and the maximal ID in it.
 
@@ -36,13 +36,6 @@ def watershed_from_affinities(
         (fragments, max_id)
         or
         (fragments, max_id, seeds) if return_seeds == True'''
-
-    if affs.dtype == np.uint8:
-        logger.info("Assuming affinities are in [0,255]")
-        max_affinity_value = 255.0
-        affs = affs.astype(np.float32)
-    else:
-        max_affinity_value = 1.0
 
     if fragments_in_xy:
 
@@ -84,26 +77,6 @@ def watershed_from_affinities(
             return_seeds)
 
         fragments = ret[0]
-
-    if epsilon_agglomerate > 0:
-
-        logger.info(
-            "Performing initial fragment agglomeration until %f",
-            epsilon_agglomerate)
-
-        generator = waterz.agglomerate(
-                affs=affs/max_affinity_value,
-                thresholds=[epsilon_agglomerate],
-                fragments=fragments,
-                scoring_function='OneMinus<HistogramQuantileAffinity<RegionGraphType, 25, ScoreValue, 256, false>>',
-                discretize_queue=256,
-                return_merge_history=False,
-                return_region_graph=False)
-        fragments[:] = next(generator)
-
-        # cleanup generator
-        for _ in generator:
-            pass
 
     return ret
 

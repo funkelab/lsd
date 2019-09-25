@@ -1,10 +1,11 @@
 from __future__ import division
 from .fragments import watershed_from_affinities
-from funlib.segment.arrays import relabel
-from scipy.ndimage.measurements import center_of_mass
+from funlib.segment.arrays import relabel, replace_values
+from scipy.ndimage import measurements
 import daisy
 import logging
 import numpy as np
+import waterz
 
 logger = logging.getLogger(__name__)
 
@@ -135,13 +136,31 @@ def watershed_in_block(
         fragments_out,
         fragments_in_xy,
         epsilon_agglomerate,
-        mask):
+        mask,
+        filter_fragments=0.0):
+    '''
+
+    Args:
+
+        filter_fragments (float):
+
+            Filter fragments that have an average affinity lower than this
+            value.
+    '''
 
     total_roi = affs.roi
 
     logger.debug("reading affs from %s", block.read_roi)
+
     affs = affs.intersect(block.read_roi)
     affs.materialize()
+
+    if affs.dtype == np.uint8:
+        logger.info("Assuming affinities are in [0,255]")
+        max_affinity_value = 255.0
+        affs.data = affs.data.astype(np.float32)
+    else:
+        max_affinity_value = 1.0
 
     if mask is not None:
 
@@ -153,10 +172,58 @@ def watershed_in_block(
     # extract fragments
     fragments_data, n = watershed_from_affinities(
         affs.data,
-        fragments_in_xy=fragments_in_xy,
-        epsilon_agglomerate=epsilon_agglomerate)
+        max_affinity_value,
+        fragments_in_xy=fragments_in_xy)
+
     if mask is not None:
         fragments_data *= mask_data.astype(np.uint64)
+
+    if filter_fragments > 0:
+
+        if fragments_in_xy:
+            average_affs = np.mean(affs.data[0:2]/max_affinity_value, axis=0)
+        else:
+            average_affs = np.mean(affs.data/max_affinity_value, axis=0)
+
+        filtered_fragments = []
+
+        fragment_ids = np.unique(fragments_data)
+
+        for fragment, mean in zip(
+                fragment_ids,
+                measurements.mean(
+                    average_affs,
+                    fragments_data,
+                    fragment_ids)):
+            if mean < filter_fragments:
+                filtered_fragments.append(fragment)
+
+        filtered_fragments = np.array(
+            filtered_fragments,
+            dtype=fragments_data.dtype)
+        replace = np.zeros_like(filtered_fragments)
+        replace_values(fragments_data, filtered_fragments, replace, inplace=True)
+
+    if epsilon_agglomerate > 0:
+
+        logger.info(
+            "Performing initial fragment agglomeration until %f",
+            epsilon_agglomerate)
+
+        generator = waterz.agglomerate(
+                affs=affs.data/max_affinity_value,
+                thresholds=[epsilon_agglomerate],
+                fragments=fragments_data,
+                scoring_function='OneMinus<HistogramQuantileAffinity<RegionGraphType, 25, ScoreValue, 256, false>>',
+                discretize_queue=256,
+                return_merge_history=False,
+                return_region_graph=False)
+        fragments_data[:] = next(generator)
+
+        # cleanup generator
+        for _ in generator:
+            pass
+
     fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
 
     # crop fragments to write_roi
@@ -193,7 +260,7 @@ def watershed_in_block(
         fragment: block.write_roi.get_offset() + affs.voxel_size*center
         for fragment, center in zip(
             fragment_ids,
-            center_of_mass(fragments.data, fragments.data, fragment_ids))
+            measurements.center_of_mass(fragments.data, fragments.data, fragment_ids))
         if not np.isnan(center[0])
     }
 
