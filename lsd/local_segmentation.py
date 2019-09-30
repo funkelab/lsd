@@ -39,7 +39,7 @@ class LocalSegmentationExtractor:
         rag = rag_provider.read_rag(ids)
 
         if len(rag.nodes()) == 0:
-            return segmentation
+            raise Exception('RAG is empty')
 
         components = rag.get_connected_components(threshold)
 
