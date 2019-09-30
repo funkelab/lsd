@@ -206,6 +206,53 @@ class MongoDbRagProvider(SharedRagProvider):
             name='incident',
             unique=True)
 
+    def __get_rag(self, nodes):
+        try:
+
+            self.__connect()
+            self.__open_db()
+            self.__open_collections()
+
+            # create a list of nodes and their attributes
+            node_list = [
+                (n['id'], self.__remove_keys(n, ['id']))
+                for n in nodes
+            ]
+            logger.debug("found %d nodes", len(node_list))
+            logger.debug("read nodes: %s", node_list)
+
+            # get all edges that have their u in the selected nodes
+            node_ids = list([ node[0] for node in node_list])
+            logger.debug("looking for edges with u in %s", node_ids)
+            edges = self.edges.find(
+                {
+                    'u': { '$in': node_ids }
+                })
+
+            # create a list of edges and their attributes
+            edge_list = [
+                (e['u'], e['v'], self.__remove_keys(e, ['u', 'v']))
+                for e in edges
+            ]
+            logger.debug("found %d edges", len(edge_list))
+            logger.debug("read edges: %s", edge_list)
+
+        finally:
+
+            self.__disconnect()
+
+        # create the sub-RAG
+        graph = MongoDbSubRag(
+            self.db_name,
+            self.host,
+            self.mode,
+            self.nodes_collection_name,
+            self.edges_collection_name)
+        graph.add_nodes_from(node_list)
+        graph.add_edges_from(edge_list)
+
+        return graph
+
     def read_nodes(self, roi):
         '''Return a list of nodes within roi.
         '''
@@ -227,6 +274,28 @@ class MongoDbRagProvider(SharedRagProvider):
                     'center_y': { '$gte': by, '$lt': ey },
                     'center_x': { '$gte': bx, '$lt': ex }
                 })
+
+        finally:
+
+            self.__disconnect()
+
+        return nodes
+
+    def read_nodes_with_ids(self, ids):
+        '''Return a list of nodes with ids.
+        '''
+
+        logger.debug("Querying nodes with number of ids", len(ids))
+
+        try:
+
+            self.__connect()
+            self.__open_db()
+            self.__open_collections()
+
+            nodes = self.nodes.find({
+                'id': {'$in': ids}
+            })
 
         finally:
 
@@ -295,58 +364,20 @@ class MongoDbRagProvider(SharedRagProvider):
 
         return edges.count() > 0
 
+    def read_rag(self, ids):
+
+        # get all nodes with given ids
+        nodes = self.read_nodes_with_ids(ids)
+
+        return self.__get_rag(nodes)
+
     def __getitem__(self, roi):
 
         assert roi.dims() == 3, "Sorry, MongoDbRagProvider backend does only 3D"
 
         # get all nodes within roi
         nodes = self.read_nodes(roi)
-
-        try:
-
-            self.__connect()
-            self.__open_db()
-            self.__open_collections()
-
-            # create a list of nodes and their attributes
-            node_list = [
-                (n['id'], self.__remove_keys(n, ['id']))
-                for n in nodes
-            ]
-            logger.debug("found %d nodes", len(node_list))
-            logger.debug("read nodes: %s", node_list)
-
-            # get all edges that have their u in the selected nodes
-            node_ids = list([ node[0] for node in node_list])
-            logger.debug("looking for edges with u in %s", node_ids)
-            edges = self.edges.find(
-                {
-                    'u': { '$in': node_ids }
-                })
-
-            # create a list of edges and their attributes
-            edge_list = [
-                (e['u'], e['v'], self.__remove_keys(e, ['u', 'v']))
-                for e in edges
-            ]
-            logger.debug("found %d edges", len(edge_list))
-            logger.debug("read edges: %s", edge_list)
-
-        finally:
-
-            self.__disconnect()
-
-        # create the sub-RAG
-        graph = MongoDbSubRag(
-            self.db_name,
-            self.host,
-            self.mode,
-            self.nodes_collection_name,
-            self.edges_collection_name)
-        graph.add_nodes_from(node_list)
-        graph.add_edges_from(edge_list)
-
-        return graph
+        return self.__get_rag(nodes)
 
     def __remove_keys(self, dictionary, keys):
 

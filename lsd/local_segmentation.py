@@ -5,6 +5,7 @@ import numpy as np
 
 from .persistence import MongoDbRagProvider
 
+
 class LocalSegmentationExtractor:
     def __init__(
         self,
@@ -34,18 +35,19 @@ class LocalSegmentationExtractor:
 
         segmentation = fragments[roi]
         segmentation.materialize()
-        rag = rag_provider[roi]
+        ids = [int(id) for id in list(np.unique(segmentation.data))]
+        rag = rag_provider.read_rag(ids)
 
         if len(rag.nodes()) == 0:
-            return segmentation
+            raise Exception('RAG is empty')
 
         components = rag.get_connected_components(threshold)
 
         values_map = np.array(
             [
                 [fragment, i]
-                for i in range(len(components))
-                for fragment in components[i]
+                for i in range(1, len(components)+1)
+                for fragment in components[i-1]
             ],
             dtype=np.uint64,
         )
