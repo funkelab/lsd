@@ -147,6 +147,11 @@ def watershed_in_block(
 
             Filter fragments that have an average affinity lower than this
             value.
+
+        min_seed_distance (int):
+
+            Controls distance between seeds in the initial watershed. Reducing
+            this value improves downsampled segmentation.
     '''
 
     total_roi = affs.roi
