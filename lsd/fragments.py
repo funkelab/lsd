@@ -27,7 +27,8 @@ def watershed_from_affinities(
         affs,
         max_affinity_value,
         fragments_in_xy=False,
-        return_seeds=False):
+        return_seeds=False,
+        min_seed_distance=10):
     '''Extract initial fragments from affinities using a watershed
     transform. Returns the fragments and the maximal ID in it.
 
@@ -55,7 +56,8 @@ def watershed_from_affinities(
             ret = watershed_from_boundary_distance(
                 boundary_distances,
                 return_seeds=return_seeds,
-                id_offset=id_offset)
+                id_offset=id_offset,
+                min_seed_distance=min_seed_distance)
 
             fragments[z] = ret[0]
             if return_seeds:
@@ -74,7 +76,8 @@ def watershed_from_affinities(
 
         ret = watershed_from_boundary_distance(
             boundary_distances,
-            return_seeds)
+            return_seeds,
+            min_seed_distance=min_seed_distance)
 
         fragments = ret[0]
 
@@ -83,9 +86,10 @@ def watershed_from_affinities(
 def watershed_from_boundary_distance(
         boundary_distances,
         return_seeds=False,
-        id_offset=0):
+        id_offset=0,
+        min_seed_distance=10):
 
-    max_filtered = maximum_filter(boundary_distances, 10)
+    max_filtered = maximum_filter(boundary_distances, min_seed_distance)
     maxima = max_filtered==boundary_distances
     seeds, n = mahotas.label(maxima)
 

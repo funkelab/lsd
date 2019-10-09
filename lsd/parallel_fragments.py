@@ -137,7 +137,8 @@ def watershed_in_block(
         fragments_in_xy,
         epsilon_agglomerate,
         mask,
-        filter_fragments=0.0):
+        filter_fragments=0.0,
+        min_seed_distance=10):
     '''
 
     Args:
@@ -173,7 +174,8 @@ def watershed_in_block(
     fragments_data, n = watershed_from_affinities(
         affs.data,
         max_affinity_value,
-        fragments_in_xy=fragments_in_xy)
+        fragments_in_xy=fragments_in_xy,
+        min_seed_distance=min_seed_distance)
 
     if mask is not None:
         fragments_data *= mask_data.astype(np.uint64)
