@@ -256,7 +256,7 @@ def watershed_in_block(
     id_bump = block.block_id*num_voxels_in_block
     logger.debug("bumping fragment IDs by %i", id_bump)
     fragments.data[fragments.data>0] += id_bump
-    fragment_ids = range(id_bump + 1, id_bump + 1 + max_id)
+    fragment_ids = range(id_bump + 1, id_bump + 1 + int(max_id))
 
     # store fragments
     logger.debug("writing fragments to %s", block.write_roi)
