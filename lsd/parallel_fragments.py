@@ -148,7 +148,8 @@ def watershed_in_block(
         mask=None,
         fragments_in_xy=False,
         epsilon_agglomerate=0.0,
-        filter_fragments=0.0):
+        filter_fragments=0.0,
+        min_seed_distance=10):
     '''
 
     Args:
@@ -157,6 +158,11 @@ def watershed_in_block(
 
             Filter fragments that have an average affinity lower than this
             value.
+
+        min_seed_distance (int):
+
+            Controls distance between seeds in the initial watershed. Reducing
+            this value improves downsampled segmentation.
     '''
 
     total_roi = affs.roi
@@ -184,7 +190,8 @@ def watershed_in_block(
     fragments_data, _ = watershed_from_affinities(
         affs.data,
         max_affinity_value,
-        fragments_in_xy=fragments_in_xy)
+        fragments_in_xy=fragments_in_xy,
+        min_seed_distance=min_seed_distance)
 
     if mask is not None:
         fragments_data *= mask_data.astype(np.uint64)

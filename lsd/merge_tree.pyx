@@ -11,7 +11,7 @@ cdef packed struct CythonNode:
     uint32_t next
 assert sizeof(CythonNode) == 6
 # 6 bytes per node, so a processor with 30MB of L3 cache will run
-# efficiently for graphs with 5 million nodes
+# efficiently for graphs up to 5 million nodes
 
 cdef class MergeTreeDbCython():
     '''Class for merge tree database
@@ -32,6 +32,50 @@ cdef class MergeTreeDbCython():
     def add_node(self, uint32_t node, uint32_t next, uint32_t level):
         self.root[node].next = next
         assert level <= 65535  # max value for uint16_t
+        self.root[node].level = level
+
+    def find_merge(self, uint32_t u, uint32_t v):
+
+        while True:
+
+            if u == v:
+                break
+
+            if self.root[u].level > self.root[v].level:
+                u, v = v, u
+
+            if self.root[u].next == 0:
+                return None
+
+            u = self.root[u].next
+
+        return u
+
+cdef packed struct CythonNodeLong:
+    uint32_t level
+    uint32_t next
+assert sizeof(CythonNodeLong) == 8
+# 6 bytes per node, so a processor with 30MB of L3 cache will run
+# efficiently for graphs up to 5 million nodes
+
+cdef class MergeTreeDbCythonLong():
+    '''Class for merge tree database
+    We need this class to wrap around the memory allocation/dealloc, note
+    the use of __cinit__ and __dealloc__ that tells Python how to 
+    deallocate memory when it garbage clean the object
+    '''
+
+    cdef CythonNodeLong* root
+
+    def __cinit__(self, size_t n_nodes):
+        self.root = <CythonNodeLong *> PyMem_Malloc(n_nodes * sizeof(CythonNodeLong))
+        memset(self.root, 0, n_nodes * sizeof(CythonNodeLong))
+
+    def __dealloc__(self):
+        PyMem_Free(self.root)
+
+    def add_node(self, uint32_t node, uint32_t next, uint32_t level):
+        self.root[node].next = next
         self.root[node].level = level
 
     def find_merge(self, uint32_t u, uint32_t v):
@@ -103,7 +147,10 @@ class MergeTree(DiGraph):
         print("Num nodes in merge tree: %d" % n_nodes)
         print("max_level: %d" % self.max_level)
 
-        self.cython_db = MergeTreeDbCython(n_nodes)
+        if self.max_level < 65536:
+            self.cython_db = MergeTreeDbCython(n_nodes)
+        else:
+            self.cython_db = MergeTreeDbCythonLong(n_nodes)
 
         for node, data in self.nodes(data=True):
 
@@ -121,7 +168,6 @@ class MergeTree(DiGraph):
             cython_nodeid = self.to_cython_db_id[node]
             assert cython_nodeid < self.n_cython_nodes
             assert next_node < self.n_cython_nodes
-            # self.cython_db.add_node(cnodes + <int>cython_nodeid, next_node, level)
             self.cython_db.add_node(<int>cython_nodeid, next_node, level)
 
         print("Finished allocating db")
