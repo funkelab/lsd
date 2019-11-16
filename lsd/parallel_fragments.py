@@ -45,9 +45,10 @@ def parallel_watershed(
         context,
         fragments_out,
         num_workers,
+        mask=None,
         fragments_in_xy=False,
-        epsilon_agglomerate=0,
-        mask=None):
+        epsilon_agglomerate=0.0,
+        filter_fragments=0.0):
     '''Extract fragments from affinities using watershed.
 
     Args:
@@ -78,6 +79,11 @@ def parallel_watershed(
 
             The number of parallel workers.
 
+        mask (`class:daisy.Array`):
+
+            A dataset containing a mask. If given, fragments are only extracted
+            for masked-in (==1) areas.
+
         fragments_in_xy (``bool``):
 
             Whether to extract fragments for each xy-section separately.
@@ -87,10 +93,10 @@ def parallel_watershed(
             Perform an initial waterz agglomeration on the extracted fragments
             to this threshold. Skip if 0 (default).
 
-        mask (`class:daisy.Array`):
+        filter_fragments (float):
 
-            A dataset containing a mask. If given, fragments are only extracted
-            for masked-in (==1) areas.
+            Filter fragments that have an average affinity lower than this
+            value.
 
     Returns:
 
@@ -108,18 +114,22 @@ def parallel_watershed(
     read_roi = daisy.Roi((0,)*affs.roi.dims(), block_size).grow(context, context)
     write_roi = daisy.Roi((0,)*affs.roi.dims(), block_size)
 
+    num_voxels_in_block = (write_roi/affs.voxel_size).size()
+
     return daisy.run_blockwise(
         total_roi,
         read_roi,
         write_roi,
         lambda b: watershed_in_block(
-            affs,
-            b,
-            rag_provider,
-            fragments_out,
-            fragments_in_xy,
-            epsilon_agglomerate,
-            mask),
+            affs=affs,
+            block=b,
+            rag_provider=rag_provider,
+            fragments_out=fragments_out,
+            num_voxels_in_block=num_voxels_in_block,
+            fragments_in_xy=fragments_in_xy,
+            epsilon_agglomerate=epsilon_agglomerate,
+            mask=mask,
+            filtered_fragments=filtered_fragments),
         lambda b: block_done(b, rag_provider),
         num_workers=num_workers,
         read_write_conflict=False,
@@ -134,9 +144,10 @@ def watershed_in_block(
         block,
         rag_provider,
         fragments_out,
-        fragments_in_xy,
-        epsilon_agglomerate,
-        mask,
+        num_voxels_in_block,
+        mask=None,
+        fragments_in_xy=False,
+        epsilon_agglomerate=0.0,
         filter_fragments=0.0):
     '''
 
@@ -170,7 +181,7 @@ def watershed_in_block(
         affs.data *= mask_data
 
     # extract fragments
-    fragments_data, n = watershed_from_affinities(
+    fragments_data, _ = watershed_from_affinities(
         affs.data,
         max_affinity_value,
         fragments_in_xy=fragments_in_xy)
@@ -229,30 +240,30 @@ def watershed_in_block(
     # crop fragments to write_roi
     fragments = fragments[block.write_roi]
     fragments.materialize()
+    max_id = fragments.data.max()
 
     # ensure we don't have IDs larger than the number of voxels (that would
     # break uniqueness of IDs below)
-    max_id = fragments.data.max()
-    if max_id > block.write_roi.size():
+    if max_id > num_voxels_in_block:
         logger.warning(
             "fragments in %s have max ID %d, relabelling...",
             block.write_roi, max_id)
-        fragments.data, n = relabel(fragments.data)
+        fragments.data, max_id = relabel(fragments.data)
+
+        assert max_id < num_voxels_in_block
 
     # ensure unique IDs
-    size_of_voxel = daisy.Roi((0,)*affs.roi.dims(), affs.voxel_size).size()
-    num_voxels_in_block = block.requested_write_roi.size()//size_of_voxel
     id_bump = block.block_id*num_voxels_in_block
     logger.debug("bumping fragment IDs by %i", id_bump)
     fragments.data[fragments.data>0] += id_bump
-    fragment_ids = range(id_bump + 1, id_bump + 1 + n)
+    fragment_ids = range(id_bump + 1, id_bump + 1 + max_id)
 
     # store fragments
     logger.debug("writing fragments to %s", block.write_roi)
     fragments_out[block.write_roi] = fragments
 
     # following only makes a difference if fragments were found
-    if n == 0:
+    if max_id == 0:
         return
 
     # get fragment centers
