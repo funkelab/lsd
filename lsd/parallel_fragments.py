@@ -48,7 +48,8 @@ def parallel_watershed(
         mask=None,
         fragments_in_xy=False,
         epsilon_agglomerate=0.0,
-        filter_fragments=0.0):
+        filter_fragments=0.0,
+        replace_sections=None):
     '''Extract fragments from affinities using watershed.
 
     Args:
@@ -93,10 +94,15 @@ def parallel_watershed(
             Perform an initial waterz agglomeration on the extracted fragments
             to this threshold. Skip if 0 (default).
 
-        filter_fragments (float):
+        filter_fragments (``float``):
 
             Filter fragments that have an average affinity lower than this
             value.
+
+        replace_sections (``list`` of ``int``):
+
+            Replace fragments data with zero in given sections (useful if large
+            artifacts are causing issues). List of section numbers (in voxels)
 
     Returns:
 
@@ -123,6 +129,7 @@ def parallel_watershed(
         lambda b: watershed_in_block(
             affs=affs,
             block=b,
+            context=context,
             rag_provider=rag_provider,
             fragments_out=fragments_out,
             num_voxels_in_block=num_voxels_in_block,
@@ -142,6 +149,7 @@ def block_done(block, rag_provider):
 def watershed_in_block(
         affs,
         block,
+        context,
         rag_provider,
         fragments_out,
         num_voxels_in_block,
@@ -149,7 +157,8 @@ def watershed_in_block(
         fragments_in_xy=False,
         epsilon_agglomerate=0.0,
         filter_fragments=0.0,
-        min_seed_distance=10):
+        min_seed_distance=10,
+        replace_sections=None):
     '''
 
     Args:
@@ -241,6 +250,38 @@ def watershed_in_block(
         # cleanup generator
         for _ in generator:
             pass
+
+    if replace_sections:
+
+        logger.info("Replacing sections...")
+
+        block_begin = block.write_roi.get_begin()
+        shape = block.write_roi.get_shape()
+
+        z_context = context[0]/affs.voxel_size[0]
+        logger.info("Z context: %i",z_context)
+
+        mapping = {}
+
+        voxel_offset = block_begin[0]/affs.voxel_size[0]
+
+        for i,j in zip(
+                range(fragments_data.shape[0]),
+                range(shape[0])):
+            mapping[i] = i
+            mapping[j] = int(voxel_offset + i) \
+                    if block_begin[0] == total_roi.get_begin()[0] \
+                    else int(voxel_offset + (i - z_context))
+
+        logging.info('Mapping: %s', mapping)
+
+        replace = [k for k,v in mapping.items() if v in replace_sections]
+
+        for r in replace:
+            logger.info("Replacing mapped section %i with zero", r)
+            fragments_data[r] = 0
+
+    #todo add key value replacement option
 
     fragments = daisy.Array(fragments_data, affs.roi, affs.voxel_size)
 
