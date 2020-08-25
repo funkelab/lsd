@@ -90,7 +90,7 @@ class AddLocalShapeDescriptor(BatchFilter):
             context_roi = request[self.descriptor].roi.grow(
                 self.context,
                 self.context)
-            context_roi = context_roi.snap_to_grid(self.voxel_size)
+            context_roi = context_roi.snap_to_grid(self.voxel_size, mode="grow")
             grown_roi = request[self.segmentation].roi.union(context_roi)
             request[self.segmentation].roi = grown_roi
 
