@@ -210,9 +210,6 @@ class LsdExtractor(object):
         d_zx = convolve(d_z, k_x, mode='constant')/voxel_size[2]
         d_yx = convolve(d_y, k_x, mode='constant')/voxel_size[2]
 
-        # Max normalization for each instance:
-        soft_mask /= np.max(np.abs(soft_mask))
-        
         d_max = np.max(np.abs(np.stack([d_z, d_y, d_x])))
         d_z /= d_max
         d_y /= d_max

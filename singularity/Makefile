@@ -1,4 +1,4 @@
-TAG="lsd:microdosingv01"
+TAG="lsd-microdosing-balancing-v01"
 
 TMP_FILE:=$(shell mktemp).img
 
