@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from ..local_shape_descriptor import LsdExtractor
-from gunpowder import BatchFilter, Array
+from gunpowder import BatchFilter, Array, BatchRequest, Batch
 import logging
 import numpy as np
 import time
@@ -59,7 +59,9 @@ class AddLocalShapeDescriptor(BatchFilter):
         self.context = None
         self.skip = False
 
-        self.extractor = LsdExtractor(self.sigma, self.mode, self.downsample)
+        self.extractor = LsdExtractor(self.sigma, 
+                                      self.mode, 
+                                      self.downsample)
 
     def setup(self):
 
@@ -73,45 +75,47 @@ class AddLocalShapeDescriptor(BatchFilter):
             self.provides(self.mask, spec.copy())
 
         if self.mode == 'gaussian':
-            self.context = tuple(s*3.0 for s in self.sigma)
+            self.context = tuple(s*3 for s in self.sigma)
         elif self.mode == 'sphere':
             self.context = tuple(self.sigma)
         else:
             raise RuntimeError("Unkown mode %s"%mode)
 
     def prepare(self, request):
-
+        deps = BatchRequest()
         if self.descriptor in request:
 
             # increase segmentation ROI to fit Gaussian
             context_roi = request[self.descriptor].roi.grow(
                 self.context,
                 self.context)
-            grown_roi = request[self.segmentation].roi.union(context_roi)
-            request[self.segmentation].roi = grown_roi
 
-            del request[self.descriptor]
-            self.skip = False
+            # ensure context roi is multiple of voxel size
+            context_roi = context_roi.snap_to_grid(
+                    self.voxel_size,
+                    mode='shrink')
+
+            grown_roi = request[self.segmentation].roi.union(context_roi)
+
+            deps[self.segmentation] = request[self.descriptor].copy()
+            deps[self.segmentation].roi = grown_roi
 
         else:
-
             self.skip = True
 
-        if self.mask and self.mask in request:
-            del request[self.mask]
+        return deps
 
     def process(self, batch, request):
-
         if self.skip:
             return
 
         dims = len(self.voxel_size)
 
         assert dims == 3, "AddLocalShapeDescriptor only works on 3D arrays."
+        segmentation_array = batch[self.segmentation]
 
-        segmentation_array = batch.arrays[self.segmentation]
-
-        # get voxel roi of requested descriptors -- this is the only region in
+        # get voxel roi of requested descriptors
+        # this is the only region in
         # which we have to compute the descriptors
         seg_roi = segmentation_array.spec.roi
         descriptor_roi = request[self.descriptor].roi
@@ -120,24 +124,25 @@ class AddLocalShapeDescriptor(BatchFilter):
             seg_roi.get_offset())/self.voxel_size
 
         descriptor = self.extractor.get_descriptors(
-            segmentation_array.data,
-            voxel_roi_in_seg)
+            segmentation=segmentation_array.data,
+            voxel_size=self.voxel_size,
+            roi=voxel_roi_in_seg)
 
         # create descriptor array
         descriptor_spec = self.spec[self.descriptor].copy()
         descriptor_spec.roi = request[self.descriptor].roi.copy()
         descriptor_array = Array(descriptor, descriptor_spec)
 
+        # Create new batch for descriptor:
+        batch = Batch()
+
         # create mask array
         if self.mask and self.mask in request:
             channel_mask = (segmentation_array.crop(descriptor_roi).data!=0).astype(np.float32)
             assert channel_mask.shape[-3:] == descriptor.shape[-3:]
             mask = np.array([channel_mask]*descriptor.shape[0])
-            batch.arrays[self.mask] = Array(mask, descriptor_spec.copy())
+            batch[self.mask] = Array(mask, descriptor_spec.copy())
 
-        # crop segmentation back to original request
-        seg_request_roi = request[self.segmentation].roi
-        cropped_segmentation_array = segmentation_array.crop(seg_request_roi)
+        batch[self.descriptor] = descriptor_array
 
-        batch.arrays[self.segmentation] = cropped_segmentation_array
-        batch.arrays[self.descriptor] = descriptor_array
+        return batch
