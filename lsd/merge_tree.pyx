@@ -124,8 +124,8 @@ class MergeTree(DiGraph):
         self.next_id += 1
 
         level = max(
-            self.node[self.id_to_node[u]]['level'],
-            self.node[self.id_to_node[v]]['level']) + 1
+            self.nodes[self.id_to_node[u]]['level'],
+            self.nodes[self.id_to_node[v]]['level']) + 1
         self.max_level = max(self.max_level, level)
         self.add_node(t, score=score, level=level)
 
@@ -192,7 +192,7 @@ class MergeTree(DiGraph):
         u = self.from_cython_db_id[u]
         if check:
             assert u == self.find_merge_check(u_p, v_p)
-        return self.node[u]['score']
+        return self.nodes[u]['score']
 
     def find_merge_check(self, u, v):
         '''Check results using old algorithm without Cython'''
@@ -203,9 +203,9 @@ class MergeTree(DiGraph):
         while True:
 
             if u == v:
-                return self.node[u]['score']
+                return self.nodes[u]['score']
 
-            if self.node[u]['level'] > self.node[v]['level']:
+            if self.nodes[u]['level'] > self.nodes[v]['level']:
                 u, v = v, u
 
             parents = list(self.successors(u))
