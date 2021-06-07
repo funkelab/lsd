@@ -156,8 +156,6 @@ def predict_blockwise(
 
     #get relevant dirs + files
 
-    base_dir = #path to base directory containing experiment directories
-
     experiment_dir = os.path.join(base_dir, experiment)
     train_dir = os.path.join(experiment_dir, '02_train')
     network_dir = os.path.join(experiment, setup, str(iteration))
