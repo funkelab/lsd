@@ -19,14 +19,15 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 **Cite:**
 
-```tex
+```bibtex
 @article{sheridan_local_2021,
 	title = {Local Shape Descriptors for Neuron Segmentation},
 	url = {https://www.biorxiv.org/content/10.1101/2021.01.18.427039v1},
 	urldate = {2021-01-20},
 	journal = {bioRxiv},
 	author = {Sheridan, Arlo and Nguyen, Tri and Deb, Diptodip and Lee, Wei-Chung Allen and Saalfeld, Stephan and Turaga, Srinivas and Manor, Uri and Funke, Jan},
-	year = {2021}}
+	year = {2021}
+}
 ```
 
 **Notes:**
