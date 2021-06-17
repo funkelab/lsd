@@ -192,7 +192,7 @@ for i in range(6):
   
     * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/lsd_data_download.ipynb)
  
-* If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see 2d examples above for calculating). 
+* If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see quick 2d examples above for calculating). 
 
 * The following tutorials show how to set up 2D training/prediction pipelines using [Gunpowder](http://funkey.science/gunpowder/). It is recommended to follow them in order (skip the basic tutorial if familiar with gunpowder).
  
@@ -467,7 +467,7 @@ This [script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/scripts
  
 ### Evaluate annotations
 
-For the zebrafinch, ground truth skeletons were used due to the size of the dataset. These skeletons were cropped, masked, and relabelled for the sub Rois that were tested in the paper. We [evaluated](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/scripts/05_evaluate_annotations.py) voi, erl, and the mincut metric on the consolidated skeletons. The current implementation could be refactored / made more modular. It also uses `node_collections` which are now deprecated in daisy. To use with the current implementation, you should checkout commit `39723ca`. 
+For the zebrafinch, ground truth skeletons were used due to the size of the dataset. These skeletons were cropped, masked, and relabelled for the sub Rois that were tested in the paper. We [evaluated](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/scripts/05_evaluate_annotations.py) voi, erl, and the mincut metric on the consolidated skeletons. The current implementation could be refactored / made more modular. It also uses `node_collections` which are now deprecated in daisy. To use with the current implementation, you should checkout daisy commit `39723ca`.
 
  
 <details>

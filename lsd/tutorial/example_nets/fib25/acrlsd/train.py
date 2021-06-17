@@ -66,8 +66,6 @@ def train_until(max_iteration):
     raw = ArrayKey('RAW')
     labels = ArrayKey('GT_LABELS')
     labels_mask = ArrayKey('GT_LABELS_MASK')
-    artifacts = ArrayKey('ARTIFACTS')
-    artifacts_mask = ArrayKey('ARTIFACTS_MASK')
     pretrained_lsd = ArrayKey('PRETRAINED_LSD')
     affs = ArrayKey('PREDICTED_AFFS')
     gt_affs = ArrayKey('GT_AFFINITIES')
