@@ -32,9 +32,11 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 **Notes:**
 
-* This is not production level software and was developed in a pure research environment so therefore some scripts may not work out of the box. For example, all paper networks were originally written using now deprecated tensorflow/cudnn versions and rely on an outdated singularity container. Similarly, post-proccesing steps were designed for use with a specific cluster and would need to be tweaked for individual use cases. If the need / use increases then we will look into refactoring, packaging and distributing.
+* This is not production level software and was developed in a pure research environment. Therefore some scripts may not work out of the box. For example, all paper networks were originally written using now deprecated tensorflow/cudnn versions and rely on an outdated singularity container. Because of this, the singularity image will not build from the current recipe - if replicating with the current implementations, please reach out for the singularity container (it is too large to upload here). Alternatively, consider reimplementing networks in pytorch (there are examples below). 
 
-* Currently, post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. These scripts will be migrated to another repository in the future...
+* Post-proccesing steps were designed for use with a specific cluster and will need to be tweaked for individual use cases. If the need / use increases then we will look into refactoring, packaging and distributing.
+
+* Currently, post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. One forseeable issue is that agglomeration requires networkx==2.2 for the MergeTree. These scripts will be migrated to another repository in the future...
 
 * Tested on Ubuntu 18.04 with Python 3. 
 
@@ -190,7 +192,7 @@ for i in range(6):
  
 * We uploaded ~1.7 tb of data (raw/labels/masks/rags etc.) to an s3 bucket. The following tutorial shows some examples for accessing and visualizing the data.
   
-    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/lsd_data_download.ipynb)
+    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/lsd_data_download.ipynb)
  
 * If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see quick 2d examples above for calculating). 
 
