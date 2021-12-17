@@ -1,7 +1,7 @@
 *.sw[pmno]
 *.hdf
 *.h5
-*.ipynb
+*.ipynb_checkpoints
 *.db
 *.py[cod]
 *.c

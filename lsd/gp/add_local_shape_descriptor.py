@@ -49,18 +49,20 @@ class AddLocalShapeDescriptor(BatchFilter):
         self.segmentation = segmentation
         self.descriptor = descriptor
         self.mask = mask
+
         try:
             self.sigma = tuple(sigma)
         except:
             self.sigma = (sigma,)*3
+
         self.mode = mode
         self.downsample = downsample
         self.voxel_size = None
         self.context = None
         self.skip = False
 
-        self.extractor = LsdExtractor(self.sigma, 
-                                      self.mode, 
+        self.extractor = LsdExtractor(self.sigma,
+                                      self.mode,
                                       self.downsample)
 
     def setup(self):
@@ -84,6 +86,11 @@ class AddLocalShapeDescriptor(BatchFilter):
     def prepare(self, request):
         deps = BatchRequest()
         if self.descriptor in request:
+
+            dims = len(request[self.descriptor].roi.get_shape())
+
+            if dims == 2:
+                self.context = self.context[0:2]
 
             # increase segmentation ROI to fit Gaussian
             context_roi = request[self.descriptor].roi.grow(
@@ -111,7 +118,6 @@ class AddLocalShapeDescriptor(BatchFilter):
 
         dims = len(self.voxel_size)
 
-        assert dims == 3, "AddLocalShapeDescriptor only works on 3D arrays."
         segmentation_array = batch[self.segmentation]
 
         # get voxel roi of requested descriptors
@@ -139,7 +145,12 @@ class AddLocalShapeDescriptor(BatchFilter):
         # create mask array
         if self.mask and self.mask in request:
             channel_mask = (segmentation_array.crop(descriptor_roi).data!=0).astype(np.float32)
-            assert channel_mask.shape[-3:] == descriptor.shape[-3:]
+
+            mask_shape = len(channel_mask.shape)
+
+            assert channel_mask.shape[-mask_shape:] == \
+                    descriptor.shape[-mask_shape:]
+
             mask = np.array([channel_mask]*descriptor.shape[0])
             batch[self.mask] = Array(mask, descriptor_spec.copy())
 
