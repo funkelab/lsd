@@ -12,8 +12,8 @@ setup(
         license='MIT',
         packages=[
             'lsd',
-            'lsd.train',
-            'lsd.post',
+            'lsd.train.gp',
+            'lsd.post.persistence',
         ],
         ext_modules=[
             Extension(
