@@ -58,6 +58,7 @@ class AddLocalShapeDescriptor(BatchFilter):
         sigma=5.0,
         mode="gaussian",
         downsample=1,
+        component=None,
     ):
 
         self.segmentation = segmentation
@@ -73,6 +74,7 @@ class AddLocalShapeDescriptor(BatchFilter):
 
         self.mode = mode
         self.downsample = downsample
+        self.component = component
         self.voxel_size = None
         self.context = None
         self.skip = False
@@ -152,6 +154,64 @@ class AddLocalShapeDescriptor(BatchFilter):
             voxel_size=self.voxel_size,
             roi=voxel_roi_in_seg,
         )
+
+        # just for 3d for now...
+        lookup = {
+            "diag": (6, 9),
+            "diag_size": ((6, 9), [9]),
+            "mean": (0, 3),
+            "mean_diag": ((0, 3), (6, 9)),
+            "mean_diag_size": ((0, 3), (6, 9), [9]),
+            "mean_ortho": (0, 6),
+            "mean_ortho_diag": (0, 9),
+            "mean_ortho_size": ((0, 6), [9]),
+            "mean_size": ((0, 3), [9]),
+            "ortho": (3, 6),
+            "ortho_diag": (3, 9),
+            "ortho_diag_size": ((3, 9), [9]),
+            "ortho_size": ((3, 6), [9]),
+            "size": 9,
+        }
+
+        if self.component is not None:
+
+            assert self.component in lookup.keys(), (
+                f"{self.component} not a valid component combination, use "
+                f"one of {list(lookup.keys())}"
+            )
+
+            comp = lookup[self.component]
+
+            if type(comp) == int:
+                descriptor = descriptor[comp]
+            else:
+                try:
+                    num_els = len([i for j in comp[0:2] for i in j])
+
+                    if num_els == 4 and len(comp) == 3:
+                        descriptor = np.concatenate(
+                            (
+                                descriptor[comp[0][0] : comp[0][1]],
+                                descriptor[comp[1][0] : comp[1][1]],
+                                descriptor[comp[2]],
+                            ),
+                            axis=0,
+                        )
+                    elif num_els == 3:
+                        descriptor = np.concatenate(
+                            (descriptor[comp[0][0] : comp[0][1]], descriptor[comp[1]]),
+                            axis=0,
+                        )
+                    else:
+                        descriptor = np.concatenate(
+                            (
+                                descriptor[comp[0][0] : comp[0][1]],
+                                descriptor[comp[1][0] : comp[1][1]],
+                            ),
+                            axis=0,
+                        )
+                except:
+                    descriptor = descriptor[comp[0] : comp[1]]
 
         # create descriptor array
         descriptor_spec = self.spec[self.descriptor].copy()
