@@ -12,14 +12,14 @@ setup(
         license='MIT',
         packages=[
             'lsd',
-            'lsd.gp',
-            'lsd.persistence',
+            'lsd.train',
+            'lsd.post',
         ],
         ext_modules=[
             Extension(
-                'lsd.merge_tree',
+                'lsd.post.merge_tree',
                 sources=[
-                    'lsd/merge_tree.pyx'
+                    'lsd/post/merge_tree.pyx'
                 ],
                 extra_compile_args=['-O3'],
                 language='c++')

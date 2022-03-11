@@ -1,13 +1,13 @@
-from lsd import LsdExtractor
-from scipy.ndimage import gaussian_filter, convolve, maximum_filter
+from lsd.train import LsdExtractor
+from scipy.ndimage import gaussian_filter, convolve, maximum_filter, label
+from skimage.segmentation import watershed
 import h5py
 import logging
-import mahotas
 import numpy as np
 import time
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('lsd.local_shape_descriptor').setLevel(logging.DEBUG)
+logging.getLogger('lsd.train.local_shape_descriptor').setLevel(logging.DEBUG)
 
 k_z = np.zeros((3, 1, 1), dtype=np.float32)
 k_z[0, 0, 0] = 1
@@ -55,9 +55,9 @@ def create_random_segmentation(size, seed):
     peaks = gaussian_filter(peaks, sigma=5.0)
     max_filtered = maximum_filter(peaks, 10)
     maxima = max_filtered==peaks
-    seeds, n = mahotas.label(maxima)
+    seeds, n = label(maxima)
     print("Creating segmentation with %d segments"%n)
-    return mahotas.cwatershed(1.0 - peaks, seeds).astype(np.uint64)
+    return watershed(1.0 - peaks, seeds).astype(np.uint64)
 
 def get_descriptors(mask, sigma, fast=True):
 

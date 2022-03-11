@@ -124,7 +124,7 @@ class LsdAgglomeration(object):
         for u in self.rag.nodes():
 
             self.__log_debug("Initializing node %d", u)
-            data = self.rag.node[u]
+            data = self.rag.nodes[u]
 
             if 'roi' not in data:
 
@@ -176,7 +176,7 @@ class LsdAgglomeration(object):
         '''
 
         # get ROI
-        roi = self.rag.node[u]['roi']
+        roi = self.rag.nodes[u]['roi']
 
         # node is not part of volume
         if roi is None:
@@ -238,14 +238,14 @@ class LsdAgglomeration(object):
         self.lsds[lsds_slice][:,v_mask] = lsds_merged[:,v_mask]
 
         # set the ROI of v to the union of u and v
-        roi_u = self.rag.node[u]['roi']
-        roi_v = self.rag.node[v]['roi']
-        self.rag.node[v]['roi'] = roi_u.union(roi_v)
+        roi_u = self.rag.nodes[u]['roi']
+        roi_v = self.rag.nodes[v]['roi']
+        self.rag.nodes[v]['roi'] = roi_u.union(roi_v)
 
         # update node score
-        self.rag.node[v]['score'] = (
-            self.rag.node[v]['score'] +
-            self.rag.node[u]['score'] +
+        self.rag.nodes[v]['score'] = (
+            self.rag.nodes[v]['score'] +
+            self.rag.nodes[u]['score'] +
             self.rag[u][v]['weight'])
 
         self.__log_info(
@@ -253,16 +253,16 @@ class LsdAgglomeration(object):
             u, v, self.rag[u][v]['weight'])
         self.__log_debug(
             " -> merge fragments %s and %s",
-            self.rag.node[u]['labels'],
-            self.rag.node[v]['labels'])
+            self.rag.nodes[u]['labels'],
+            self.rag.nodes[v]['labels'])
         self.__log_debug(
             "Updated score of %d (merged with %d) to %f",
-            u, v, self.rag.node[v]['score'])
+            u, v, self.rag.nodes[v]['score'])
 
     def __merge_segmentation(self, u, v):
         '''Replace u with v in segmentation.'''
 
-        segmentation_u = self.segmentation[self.rag.node[u]['roi'].to_slices()]
+        segmentation_u = self.segmentation[self.rag.nodes[u]['roi'].to_slices()]
         segmentation_u[segmentation_u==u] = v
 
     def __compute_edge_score(self, u, v):
@@ -340,8 +340,8 @@ class LsdAgglomeration(object):
         '''
 
         # get node ROIs
-        roi_u = self.rag.node[u]['roi']
-        roi_v = self.rag.node[v]['roi']
+        roi_u = self.rag.nodes[u]['roi']
+        roi_v = self.rag.nodes[v]['roi']
 
         # nodes that are not part of the volume have no change_roi
         if roi_u is None or roi_v is None:
