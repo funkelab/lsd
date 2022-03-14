@@ -1,6 +1,7 @@
 from Cython.Distutils import build_ext
 from distutils.core import setup
 from distutils.extension import Extension
+from setuptools import find_packages
 
 setup(
         name='lsd',
@@ -10,11 +11,7 @@ setup(
         author='Jan Funke',
         author_email='jfunke@iri.upc.edu',
         license='MIT',
-        packages=[
-            'lsd',
-            'lsd.train.gp',
-            'lsd.post.persistence',
-        ],
+        packages=find_packages(),
         ext_modules=[
             Extension(
                 'lsd.post.merge_tree',
