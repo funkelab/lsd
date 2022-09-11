@@ -144,7 +144,7 @@ def train_until(max_iteration):
         AddLocalShapeDescriptor(
             labels,
             gt_lsds,
-            mask=gt_lsds_scale,
+            lsds_mask=gt_lsds_scale,
             sigma=80,
             downsample=2) +
         UnmaskBackground(gt_lsds_scale, labels_mask) +
