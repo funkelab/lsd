@@ -62,7 +62,7 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
  matplotlib
  scikit-image
 
- repos (i.e pip install git+git://github.com/{repo})
+ repos (i.e pip install git+https://github.com/{repo})
  
  funkelab/funlib.segment.git
  funkelab/lsd.git
