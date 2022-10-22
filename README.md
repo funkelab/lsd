@@ -3,7 +3,7 @@ Local Shape Descriptors (for Neuron Segmentation)
 
 ![](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/gifs/lsd_particles.gif)
 
-This repository contains code to compute Local Shape Descriptors (LSDs) from an instance segmentation. LSDs can then be used during training as an auxiliary target, which we found to improve boundary prediction and therefore segmentation quality. Read more about it in our [paper](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v1) and/or [blog post](https://localshapedescriptors.github.io/).
+This repository contains code to compute Local Shape Descriptors (LSDs) from an instance segmentation. LSDs can then be used during training as an auxiliary target, which we found to improve boundary prediction and therefore segmentation quality. Read more about it in our [paper](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v2) and/or [blog post](https://localshapedescriptors.github.io/).
 
 ---
 
@@ -36,7 +36,7 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 * Post-proccesing steps were designed for use with a specific cluster and will need to be tweaked for individual use cases. If the need / use increases then we will look into refactoring, packaging and distributing.
 
-* Currently, post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. One forseeable issue is that agglomeration requires networkx==2.2 for the MergeTree. These scripts will be migrated to another repository in the future...
+* Currently, post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/post/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. One forseeable issue is that agglomeration requires networkx==2.2 for the MergeTree. These scripts will be migrated to another repository in the future...
 
 * Tested on Ubuntu 18.04 with Python 3. 
 
@@ -48,10 +48,10 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 The following tutorial allows you to run in the browser using google colab. In order to replicate the tutorial locally, create a conda environment and install the relevant packages. E.g:
 
-1) conda create -n lsd_test python=3
-2) conda activate lsd_test
-3) pip install matplotlib scikit-image gunpowder
-4) pip install git+https://github.com/funkelab/lsd.git@restructure
+1) `conda create -n lsd_test python=3`
+2) `conda activate lsd_test`
+3) `pip install matplotlib scikit-image gunpowder`
+4) `pip install git+https://github.com/funkelab/lsd.git`
 
 tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/quick_tutorial.ipynb)
 
@@ -65,23 +65,23 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
  
 * We uploaded ~1.7 tb of data (raw/labels/masks/rags etc.) to an s3 bucket. The following tutorial shows some examples for accessing and visualizing the data.
   
-    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/lsd_data_download.ipynb)
+    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/master/notebooks/lsd_data_download.ipynb)
  
 * If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see quick 2d examples above for calculating). 
 
-* The following tutorials show how to set up 2D training/prediction pipelines using [Gunpowder](http://funkey.science/gunpowder/). It is recommended to follow them in order (skip the basic tutorial if familiar with gunpowder).
+* The following tutorials show how to set up 2D training/prediction pipelines using [Gunpowder](http://funkey.science/gunpowder/). It is recommended to follow them in order (skip the basic tutorial if familiar with gunpowder). **Note:** Google Colab can sometimes be slow especially due to data I/O. These notebooks will run much faster in a jupyter notebook on a local gpu, but the Colab versions should provide a starting point.
  
-    * Basic Gunpowder tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/basic_gp_tutorial.ipynb)
+    * Basic Gunpowder tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/basic_gp_tutorial.ipynb)
 
-    * Train Affinities: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/train_affinities.ipynb)
+    * Train Affinities: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_affinities.ipynb)
 
-    * Train LSDs: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/train_lsds.ipynb)
+    * Train LSDs: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds.ipynb)
 
-    * Train MTLSD: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/train_mtlsd.ipynb)
+    * Train MTLSD: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_mtlsd.ipynb)
 
-    * Inference (using pretrained MTLSD checkpoint): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/inference.ipynb)
+    * Inference (using pretrained MTLSD checkpoint): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/inference.ipynb)
 
-    * Watershed, agglomeration, segmentation: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/tutorial/lsd/tutorial/notebooks/segment.ipynb)
+    * Watershed, agglomeration, segmentation: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/segment.ipynb)
 
 ---
 
@@ -95,7 +95,7 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
  
 * Since networks in this paper were implemented in Tensorflow, there was a two step process for training. First the networks were created using the `mknet.py` files. This saved tensor placeholders and meta data in config files that were then used for both training and prediction. The mknet files used the now deprecated mala repository to create the networks. If reimplementing in Tensorflow, consider migrating to [funlib.learn.tensorflow](https://github.com/funkelab/funlib.learn.tensorflow). 
  
-* If using Pytorch, the networks can just be created directly inside the train scripts since placeholders aren't required. For example, the logic from this [mknet script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/mknet.py) and this [train script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/train.py) can be condensed to [this](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/train_pytorch.py).
+* If using Pytorch, the networks can just be created directly inside the train scripts since placeholders aren't required. For example, the logic from this tensorflow [mknet script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/mknet.py) and this tensorflow [train script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/train.py) can be condensed to this pytorch [train script](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/train_pytorch.py).
  
 * For training an autocontext network (e.g `acrlsd`), the current implementation learns the LSDs in a [first pass](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/lsd/train.py). A saved checkpoint is then used when creating the [second pass](https://github.com/funkelab/lsd/blob/4397779ea4702eb3d593898d6240819e761fd41a/lsd/tutorial/example_nets/fib25/acrlsd/mknet.py#L122) in order to [predict LSDs](https://github.com/funkelab/lsd/blob/4397779ea4702eb3d593898d6240819e761fd41a/lsd/tutorial/example_nets/fib25/acrlsd/train.py#L158) prior to learning the Affinities. One could modify this to use a single setup and remove the need for writing the LSDs to disk.
   
@@ -110,30 +110,6 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
 <details>
   <summary>Visualizations of example training/prediction pipelines</summary>
 <br/><br/>
-<details>
-  <summary>Color key</summary>
-
-![#aaf2e3](https://via.placeholder.com/15/aaf2e3/000000?text=+) [Source nodes](http://funkey.science/gunpowder/api.html#source-nodes)
-
-![#ffb8e7](https://via.placeholder.com/15/ffb8e7/000000?text=+) [Image processing nodes](http://funkey.science/gunpowder/api.html#image-processing-nodes)
- 
-![#ffdead](https://via.placeholder.com/15/ffdead/000000?text=+) [Location manipulation nodes](http://funkey.science/gunpowder/api.html#location-manipulation-nodes)
- 
-![#b5b3b3](https://via.placeholder.com/15/b5b3b3/000000?text=+) [Provider combination nodes](http://funkey.science/gunpowder/api.html#provider-combination-nodes)
- 
-![#bbf](https://via.placeholder.com/15/bbf/000000?text=+) [Augmentation nodes](http://funkey.science/gunpowder/api.html#augmentation-nodes)
- 
-![#fffc91](https://via.placeholder.com/15/fffc91/000000?text=+) [Label manipulation nodes](http://funkey.science/gunpowder/api.html#label-manipulation-nodes)
- 
-![#b3e7ff](https://via.placeholder.com/15/b3e7ff/000000?text=+) [Performance nodes](http://funkey.science/gunpowder/api.html#performance-nodes)
- 
-![#ff9169](https://via.placeholder.com/15/ff9169/000000?text=+) [Training and prediction nodes](http://funkey.science/gunpowder/api.html#training-and-prediction-nodes)
- 
-![#72bf69](https://via.placeholder.com/15/72bf69/000000?text=+) [Output nodes](http://funkey.science/gunpowder/api.html#module-gunpowder)
- 
-![#a291ff](https://via.placeholder.com/15/a291ff/000000?text=+) [Iterative processing nodes](http://funkey.science/gunpowder/api.html#iterative-processing-nodes)
-
- </details>
  
 Vanilla affinities [training](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/example_nets/fib25/vanilla/train.py):
  
@@ -165,7 +141,7 @@ Autocontext [LSD](https://github.com/funkelab/lsd/blob/tutorial/lsd/tutorial/exa
  
 ![](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/pipeline.jpeg)
  
-* Everything was done in parallel using [daisy](https://github.com/funkelab/daisy), but one could use multiprocessing or dask instead.
+* Everything was done in parallel using daisy ([github](https://github.com/funkelab/daisy), [docs](https://daisy-docs.readthedocs.io/en/latest/index.html)), but one could use multiprocessing or dask instead.
  
 * For our experiments we used [MongoDB](https://www.mongodb.com/) for all storage (block checks, rags, scores, etc) due to the size of the data. Depending on use case, it might be better to read/write to file rather than mongo. See watershed for further info.
  
@@ -192,7 +168,7 @@ The worker logic is located in individual `predict.py` scripts ([example](https:
 <details>
  <summary>Example predict config</summary>
 
-```
+```json
  {
   "base_dir": "/path/to/base/directory",
   "experiment": "hemi",
