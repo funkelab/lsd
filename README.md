@@ -65,7 +65,7 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
  
 * We uploaded ~1.7 tb of data (raw/labels/masks/rags etc.) to an s3 bucket. The following tutorial shows some examples for accessing and visualizing the data.
   
-    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/master/notebooks/lsd_data_download.ipynb)
+    * Data download: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/lsd_data_download.ipynb)
  
 * If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see quick 2d examples above for calculating). 
 
