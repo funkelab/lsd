@@ -1,15 +1,16 @@
 import h5py
 import logging
-import lsd
 import numpy as np
+from lsd.train import LsdExtractor
+from lsd.post import LsdAgglomeration
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
-logging.getLogger('lsd.local_shape_descriptor').setLevel(logging.DEBUG)
+logging.getLogger('lsd.post.agglomerate').setLevel(logging.DEBUG)
+logging.getLogger('lsd.train.local_shape_descriptor').setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
 
-    lsd_extractor = lsd.LsdExtractor(
+    lsd_extractor = LsdExtractor(
         sigma=(10.0, 10.0, 10.0),
         downsample=2)
 
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     fragments = np.array(gt)
     fragments[5:15] = 3
 
-    agglomeration = lsd.LsdAgglomeration(
+    agglomeration = LsdAgglomeration(
         fragments,
         target_lsds,
         lsd_extractor,
