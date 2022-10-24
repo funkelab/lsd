@@ -82,6 +82,12 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
     * Inference (using pretrained MTLSD checkpoint): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/inference.ipynb)
 
     * Watershed, agglomeration, segmentation: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/segment.ipynb)
+    
+* Bonus notebooks:
+
+    * Training using sparse ground truth: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds_sparse_labels.ipynb)
+    
+    * Ignore glia during training: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds_ignore_glia.ipynb)
 
 ---
 
