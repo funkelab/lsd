@@ -5,6 +5,10 @@ Local Shape Descriptors (for Neuron Segmentation)
 
 This repository contains code to compute Local Shape Descriptors (LSDs) from an instance segmentation. LSDs can then be used during training as an auxiliary target, which we found to improve boundary prediction and therefore segmentation quality. Read more about it in our [paper](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v2) and/or [blog post](https://localshapedescriptors.github.io/).
 
+| Paper             |  Blog Post |
+:-------------------------:|:-------------------------:
+[![Paper](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/paper_image_resized.png)](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v2)  |  [![Blog post](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/medium/lsds_header.jpeg)](https://localshapedescriptors.github.io/)
+
 ---
 
 [Quick 2d Examples](#example)
@@ -32,13 +36,17 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 **Notes:**
 
-* This is not production level software and was developed in a pure research environment. Therefore some scripts may not work out of the box. For example, all paper networks were originally written using now deprecated tensorflow/cudnn versions and rely on an outdated singularity container. Because of this, the singularity image will not build from the current recipe - if replicating with the current implementations, please reach out for the singularity container (it is too large to upload here). Alternatively, consider reimplementing networks in pytorch (there are examples below). 
+* Tested on Ubuntu 18.04 with Python 3. 
+
+* This is not production level software and was developed in a pure research environment. Therefore some scripts may not work out of the box. For example, all paper networks were originally written using now deprecated tensorflow/cudnn versions and rely on an outdated singularity container. Because of this, the singularity image will not build from the current recipe - if replicating with the current implementations, please reach out for the singularity container (it is too large to upload here). Alternatively, consider reimplementing networks in pytorch (recommended - see [Training](https://github.com/funkelab/lsd/edit/master/README.md#training)). 
 
 * Post-proccesing steps were designed for use with a specific cluster and will need to be tweaked for individual use cases. If the need / use increases then we will look into refactoring, packaging and distributing.
 
-* Currently, post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/post/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. One forseeable issue is that agglomeration requires networkx==2.2 for the MergeTree. These scripts will be migrated to another repository in the future...
+* Currently, several post-processing scripts (e.g [watershed](https://github.com/funkelab/lsd/blob/master/lsd/post/fragments.py)) are located inside this repo which creates more dependencies than needed for using the lsds. One forseeable issue is that agglomeration requires networkx==2.2 for the MergeTree and boost is required for `funlib.segment`. We have restructured the repo to use `lsd.train` and `lsd.post` submodules. For just calculating the lsds, it is sufficient to use `lsd.train`, e.g:
 
-* Tested on Ubuntu 18.04 with Python 3. 
+```py
+from lsd.train import local_shape_descriptor
+```
 
 ---
 
