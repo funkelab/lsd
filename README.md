@@ -96,6 +96,8 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
     * Training using sparse ground truth (useful if you only have a subset of training data but still want dense predictions): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds_sparse_labels.ipynb)
 
     * Ignore regions during training (useful if you want the network to learn to predict zeros in certain regions, eg glia ids): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds_ignore_glia.ipynb)
+    
+    * Train lsds on non-em data with pytorch: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/train_lsds_non_em_pytorch.ipynb)
 
 ---
 
