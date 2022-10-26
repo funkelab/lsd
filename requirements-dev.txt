@@ -1,0 +1,4 @@
+matplotlib
+zarr
+luigi
+pytest
