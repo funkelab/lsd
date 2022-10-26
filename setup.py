@@ -4,7 +4,7 @@ from distutils.extension import Extension
 from setuptools import find_packages
 
 setup(
-        name='lsd',
+        name='lsds',
         version='0.1',
         description='Local Shape Descriptors.',
         url='https://github.com/funkey/lsd',
@@ -21,5 +21,15 @@ setup(
                 extra_compile_args=['-O3'],
                 language='c++')
         ],
-        cmdclass={'build_ext': build_ext}
+        cmdclass={'build_ext': build_ext},
+        install_requires=[
+            "mahotas",
+            "numpy",
+            "scipy",
+            "h5py",
+            "scikit-image",
+            "requests",
+            "cython",
+            "gunpowder",
+        ]
 )
