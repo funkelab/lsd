@@ -1,10 +1,2 @@
-mahotas
-numpy
-scipy
-h5py
-scikit-image
-requests
-cython
-git+git://github.com/funkey/waterz@8ccd0b308fed604d143577f128420da83ff444da#egg=waterz
-git+git://github.com/funkey/gunpowder@28fbe7914e235edc1eb15bfdf695da15ac48bb32#egg=gunpowder
-git+git://github.com/funkelab/funlib.segment@09246e7aed32210747800906846d03788ca10b81#egg=funlib.segment
+git+https://github.com/funkey/waterz@8ccd0b308fed604d143577f128420da83ff444da#egg=waterz
+git+https://github.com/funkelab/funlib.segment@09246e7aed32210747800906846d03788ca10b81#egg=funlib.segment
