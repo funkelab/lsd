@@ -11,7 +11,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
         name='lsds',
-        version='0.1',
+        version='0.1.1',
         description='Local Shape Descriptors.',
         long_description=long_description,
         long_description_content_type='text/markdown',
