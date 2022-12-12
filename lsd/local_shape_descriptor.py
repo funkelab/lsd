@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import logging
-from funlib.geometry import Roi, Coordinate
+from gunpowder import Roi, Coordinate
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage.filters import convolve
 from numpy.lib.stride_tricks import as_strided
