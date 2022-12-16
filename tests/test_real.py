@@ -2,6 +2,7 @@ import h5py
 import lsd
 import logging
 import gunpowder as gp
+from lsd.train import LsdExtractor
 
 logging.basicConfig(level=logging.INFO)
 # logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
@@ -36,12 +37,7 @@ if __name__ == "__main__":
         (slice(None),) +
         ((affs_roi - lsds_offset)/voxel_size).to_slices()]
 
-    fragments, distances, seeds = lsd.fragments.watershed_from_affinities(
-        affs,
-        return_distances=True,
-        return_seeds=True)
-
-    lsd_extractor = lsd.LsdExtractor(
+    lsd_extractor = LsdExtractor(
         sigma=(80.0, 80.0, 80.0),
         downsample=2)
     voxel_size = (8, 8, 8)
@@ -50,15 +46,6 @@ if __name__ == "__main__":
         f['volumes/lsds'] = lsds[0:3]
         f['volumes/lsds'].attrs['resolution'] = voxel_size
         f['volumes/lsds'].attrs['offset'] = lsds_roi.get_offset()
-        f['volumes/fragments'] = fragments
-        f['volumes/fragments'].attrs['resolution'] = voxel_size
-        f['volumes/fragments'].attrs['offset'] = lsds_roi.get_offset()
-        # f['volumes/distances'] = distances
-        # f['volumes/distances'].attrs['resolution'] = voxel_size
-        # f['volumes/distances'].attrs['offset'] = lsds_roi.get_offset()
-        # f['volumes/seeds'] = seeds
-        # f['volumes/seeds'].attrs['resolution'] = voxel_size
-        # f['volumes/seeds'].attrs['offset'] = lsds_roi.get_offset()
         f['volumes/raw'] = raw
         f['volumes/raw'].attrs['resolution'] = voxel_size
         f['volumes/raw'].attrs['offset'] = raw_roi.get_offset()
@@ -68,24 +55,3 @@ if __name__ == "__main__":
         f['volumes/neuron_ids'] = gt
         f['volumes/neuron_ids'].attrs['resolution'] = voxel_size
         f['volumes/neuron_ids'].attrs['offset'] = gt_offset
-
-    agglomeration = lsd.LsdAgglomeration(
-        fragments,
-        lsds,
-        lsd_extractor,
-        voxel_size=voxel_size)
-
-    for threshold in [0]:
-
-        agglomeration.merge_until(threshold)
-        segmentation = agglomeration.get_segmentation()
-
-        with h5py.File('test_real.hdf', 'r+') as f:
-            ds_name = 'volumes/segmentation_%d'%threshold
-            f[ds_name] = segmentation
-            f[ds_name].attrs['resolution'] = voxel_size
-            f[ds_name].attrs['offset'] = lsds_roi.get_offset()
-            ds_name = 'volumes/lsds_%d'%threshold
-            f[ds_name] = agglomeration.get_lsds()[0:3]
-            f[ds_name].attrs['resolution'] = voxel_size
-            f[ds_name].attrs['offset'] = lsds_roi.get_offset()

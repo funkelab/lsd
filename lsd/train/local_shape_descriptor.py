@@ -2,8 +2,7 @@ import gunpowder as gp
 import numpy as np
 import time
 import logging
-from scipy.ndimage import gaussian_filter
-from scipy.ndimage.filters import convolve
+from scipy.ndimage import convolve, gaussian_filter
 from numpy.lib.stride_tricks import as_strided
 
 logger = logging.getLogger(__name__)

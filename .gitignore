@@ -7,7 +7,7 @@
 *.c
 *.cpp
 *.so
-lsd.egg-info
+*egg-info
 build
 docker/lsd
 docker/requirements.txt

@@ -1,12 +1,11 @@
 import h5py
 import logging
-import lsd
 import mahotas
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter, maximum_filter
+from lsd.train import LsdExtractor
+from scipy.ndimage import gaussian_filter, maximum_filter
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('lsd.agglomerate').setLevel(logging.DEBUG)
 
 size = (1, 100, 100)
 
@@ -32,7 +31,7 @@ if __name__ == "__main__":
         # intersect gt and fragments to get an oversegmentation
         fragments = gt + (fragments + 1)*gt.max()
 
-        lsd_extractor = lsd.LsdExtractor(sigma=(10.0, 10.0, 10.0))
+        lsd_extractor = LsdExtractor(sigma=(10.0, 10.0, 10.0))
         predicted_lsds = lsd_extractor.get_descriptors(gt)
 
         if noise_factor > 0:
@@ -40,33 +39,6 @@ if __name__ == "__main__":
             predicted_lsds += noise*noise_factor
             predicted_lsds = predicted_lsds.clip(0, 1)
 
-        agglomeration = lsd.LsdAgglomeration(
-            fragments,
-            predicted_lsds,
-            lsd_extractor)
-
-        # fragments and lsdss before merging
-        segmentations = [np.array(agglomeration.get_segmentation()[0])]
-        lsdss = [np.array(agglomeration.get_lsds()[:,0])]
-
-        while agglomeration.merge_until(0, max_merges=1) != 0:
-            segmentations.append(np.array(agglomeration.get_segmentation()[0]))
-            lsdss.append(np.array(agglomeration.get_lsds()[:,0]))
-        num_merges = len(segmentations)
-
-        print("Performed %d merges"%num_merges)
-
-        segmentations = np.array(segmentations)
-        lsdss = np.array(lsdss).transpose((1, 0, 2, 3))
-        gt = [gt[0]]*num_merges
-        predicted_lsds = np.array([predicted_lsds[:,0]]*num_merges).transpose((1, 0, 2, 3))
-
-        diffs = np.sqrt(np.sum((predicted_lsds - lsdss)**2, axis=0))
-        diffs /= diffs.max()
-
         with h5py.File('test_synthetic_noise=%d.hdf'%noise_factor, 'w') as f:
             f['volumes/gt'] = gt
             f['volumes/predicted_lsds'] = predicted_lsds[0:3]
-            f['volumes/segmentations'] = segmentations
-            f['volumes/lsdss'] = lsdss[0:3]
-            f['volumes/diffs'] = diffs
