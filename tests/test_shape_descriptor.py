@@ -4,10 +4,11 @@ from skimage.segmentation import watershed
 import h5py
 import logging
 import numpy as np
+import os
 import time
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('lsd.train.local_shape_descriptor').setLevel(logging.DEBUG)
+logging.getLogger("lsd.train.local_shape_descriptor").setLevel(logging.DEBUG)
 
 k_z = np.zeros((3, 1, 1), dtype=np.float32)
 k_z[0, 0, 0] = 1
@@ -48,82 +49,102 @@ k_yx[0, 0, 2] = -1
 k_yx[0, 2, 0] = -1
 k_yx[0, 2, 2] = 1
 
+
 def create_random_segmentation(size, seed):
 
     np.random.seed(seed)
     peaks = np.random.random(size).astype(np.float32)
     peaks = gaussian_filter(peaks, sigma=5.0)
     max_filtered = maximum_filter(peaks, 10)
-    maxima = max_filtered==peaks
+    maxima = max_filtered == peaks
     seeds, n = label(maxima)
-    print("Creating segmentation with %d segments"%n)
+    print("Creating segmentation with %d segments" % n)
     return watershed(1.0 - peaks, seeds).astype(np.uint64)
+
 
 def get_descriptors(mask, sigma, fast=True):
 
-    count = gaussian_filter(mask, sigma, mode='constant', output=np.float32)
+    count = gaussian_filter(mask, sigma, mode="constant", output=np.float32)
 
     if fast:
-        d_z = convolve(count, k_z, mode='constant')
-        d_y = convolve(count, k_y, mode='constant')
-        d_x = convolve(count, k_x, mode='constant')
-        d_zz = convolve(count, k_zz, mode='constant')
-        d_yy = convolve(count, k_yy, mode='constant')
-        d_xx = convolve(count, k_xx, mode='constant')
-        d_zy = convolve(count, k_zy, mode='constant')
-        d_zx = convolve(count, k_zx, mode='constant')
-        d_yx = convolve(count, k_yx, mode='constant')
+        d_z = convolve(count, k_z, mode="constant")
+        d_y = convolve(count, k_y, mode="constant")
+        d_x = convolve(count, k_x, mode="constant")
+        d_zz = convolve(count, k_zz, mode="constant")
+        d_yy = convolve(count, k_yy, mode="constant")
+        d_xx = convolve(count, k_xx, mode="constant")
+        d_zy = convolve(count, k_zy, mode="constant")
+        d_zx = convolve(count, k_zx, mode="constant")
+        d_yx = convolve(count, k_yx, mode="constant")
     else:
-        d_z = gaussian_filter(mask, sigma, order=(1, 0, 0), mode='constant', output=np.float32)
-        d_y = gaussian_filter(mask, sigma, order=(0, 1, 0), mode='constant', output=np.float32)
-        d_x = gaussian_filter(mask, sigma, order=(0, 0, 1), mode='constant', output=np.float32)
-        d_zz = gaussian_filter(mask, sigma, order=(2, 0, 0), mode='constant', output=np.float32)
-        d_yy = gaussian_filter(mask, sigma, order=(0, 2, 0), mode='constant', output=np.float32)
-        d_xx = gaussian_filter(mask, sigma, order=(0, 0, 2), mode='constant', output=np.float32)
-        d_zy = gaussian_filter(mask, sigma, order=(1, 1, 0), mode='constant', output=np.float32)
-        d_zx = gaussian_filter(mask, sigma, order=(1, 0, 1), mode='constant', output=np.float32)
-        d_yx = gaussian_filter(mask, sigma, order=(0, 1, 1), mode='constant', output=np.float32)
+        d_z = gaussian_filter(
+            mask, sigma, order=(1, 0, 0), mode="constant", output=np.float32
+        )
+        d_y = gaussian_filter(
+            mask, sigma, order=(0, 1, 0), mode="constant", output=np.float32
+        )
+        d_x = gaussian_filter(
+            mask, sigma, order=(0, 0, 1), mode="constant", output=np.float32
+        )
+        d_zz = gaussian_filter(
+            mask, sigma, order=(2, 0, 0), mode="constant", output=np.float32
+        )
+        d_yy = gaussian_filter(
+            mask, sigma, order=(0, 2, 0), mode="constant", output=np.float32
+        )
+        d_xx = gaussian_filter(
+            mask, sigma, order=(0, 0, 2), mode="constant", output=np.float32
+        )
+        d_zy = gaussian_filter(
+            mask, sigma, order=(1, 1, 0), mode="constant", output=np.float32
+        )
+        d_zx = gaussian_filter(
+            mask, sigma, order=(1, 0, 1), mode="constant", output=np.float32
+        )
+        d_yx = gaussian_filter(
+            mask, sigma, order=(0, 1, 1), mode="constant", output=np.float32
+        )
 
-    d = np.stack([
-        d_z, d_y, d_x,
-        d_zz, d_yy, d_xx,
-        d_zy, d_zx, d_yx])
+    d = np.stack([d_z, d_y, d_x, d_zz, d_yy, d_xx, d_zy, d_zx, d_yx])
 
     # normalize, move to [0, 1]
-    count[count==0] = 1
-    d = d/count + 0.5
+    count[count == 0] = 1
+    d = d / count + 0.5
 
-    lsds = np.concatenate([d, count[None,:]])
+    lsds = np.concatenate([d, count[None, :]])
 
-    lsds[:,mask==0] = 0
+    lsds[:, mask == 0] = 0
 
     return lsds
 
-if __name__ == "__main__":
+
+def test_shape_descriptors():
 
     extractor = LsdExtractor(sigma=(5.0, 5.0, 5.0))
 
-    segmentation = create_random_segmentation((100, 100, 100), seed=42)
+    segmentation = create_random_segmentation((20, 20, 20), seed=42)
     ids = np.unique(segmentation)
 
     start = time.time()
     lsds = extractor.get_descriptors(segmentation)
-    print("Computed original LSDs in %fs"%(time.time() - start))
+    print("Computed original LSDs in %fs" % (time.time() - start))
 
     start = time.time()
     lsds_compare_fast = np.zeros_like(lsds)
     for i in ids:
-        lsds_compare_fast += get_descriptors(segmentation==i, (5.0, 5.0, 5.0))
-    print("Computed alternative LSDs in %fs"%(time.time() - start))
+        lsds_compare_fast += get_descriptors(segmentation == i, (5.0, 5.0, 5.0))
+    print("Computed alternative LSDs in %fs" % (time.time() - start))
 
     start = time.time()
     lsds_compare = np.zeros_like(lsds)
     for i in ids:
-        lsds_compare += get_descriptors(segmentation==i, (5.0, 5.0, 5.0), fast=False)
-    print("Computed alternative LSDs in %fs"%(time.time() - start))
+        lsds_compare += get_descriptors(segmentation == i, (5.0, 5.0, 5.0), fast=False)
+    print("Computed alternative LSDs in %fs" % (time.time() - start))
 
-    with h5py.File('test_shape_descriptor.hdf', 'w') as f:
-        f['volumes/segmentation'] = segmentation
-        f['volumes/lsds'] = lsds
-        f['volumes/lsds_compare_fast'] = lsds_compare_fast
-        f['volumes/lsds_compare'] = lsds_compare
+    with h5py.File("test_shape_descriptor.hdf", "w") as f:
+        f["volumes/segmentation"] = segmentation
+        f["volumes/lsds"] = lsds
+        f["volumes/lsds_compare_fast"] = lsds_compare_fast
+        f["volumes/lsds_compare"] = lsds_compare
+
+    os.remove("test_shape_descriptor.hdf")

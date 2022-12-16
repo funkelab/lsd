@@ -45,7 +45,7 @@ def _2d_3d(array, f):
 
     return view.reshape(l)
 
-if __name__ == '__main__':
+def test_strided():
 
     a_2d = np.array([[[1,1,1],[1,1,1],[1,1,1]]])
     a_3d = np.array([[[[1,1,1],[1,1,1],[1,1,1]]]])

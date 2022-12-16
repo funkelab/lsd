@@ -2,6 +2,7 @@ import h5py
 import logging
 import mahotas
 import numpy as np
+import os
 from lsd.train import LsdExtractor
 from scipy.ndimage import gaussian_filter, maximum_filter
 
@@ -20,7 +21,7 @@ def create_random_segmentation(seed):
     print("Creating segmentation with %d segments"%n)
     return mahotas.cwatershed(1.0 - peaks, seeds).astype(np.uint64)
 
-if __name__ == "__main__":
+def test_synthetic():
 
     # factor of pixel-wise uniformly sampled noise (in [-0.5, 0.5]) to add to
     # "prediction" LSDs
@@ -39,6 +40,10 @@ if __name__ == "__main__":
             predicted_lsds += noise*noise_factor
             predicted_lsds = predicted_lsds.clip(0, 1)
 
-        with h5py.File('test_synthetic_noise=%d.hdf'%noise_factor, 'w') as f:
+        name = 'test_synthetic_noise=%d.hdf'%noise_factor
+
+        with h5py.File(name, 'w') as f:
             f['volumes/gt'] = gt
             f['volumes/predicted_lsds'] = predicted_lsds[0:3]
+
+        os.remove(name)
