@@ -110,7 +110,7 @@ def agglomerate_in_block(
     for (u, v) in merge_rag.edges():
         # this might overwrite already existing edges from neighboring blocks,
         # but that's fine, we only write attributes for edges within write_roi
-        rag.add_edge(u, v, merge_score=None, agglomerated=True)
+        rag.add_edge(u, v, {'merge_score': None, 'agglomerated': True})
 
     # agglomerate to match target LSDs
     agglomeration = LsdAgglomeration(
@@ -140,4 +140,4 @@ def agglomerate_in_block(
     logger.info("merged %d edges", num_merged)
 
     # write back results (only within write_roi)
-    rag.write_edges(block.write_roi)
+    rag.sync_edges(block.write_roi)
