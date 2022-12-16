@@ -1,7 +1,7 @@
+import gunpowder as gp
 import numpy as np
 import time
 import logging
-from gunpowder import Roi, Coordinate
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage.filters import convolve
 from numpy.lib.stride_tricks import as_strided
@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 def get_local_shape_descriptors(
         segmentation,
         sigma,
-        components=None,
         voxel_size=None,
         roi=None,
         labels=None,
@@ -29,27 +28,6 @@ def get_local_shape_descriptors(
         sigma (``tuple`` of ``float``):
 
             The radius to consider for the local shape descriptor.
-
-        components (``string`` of ``int``, optional):
-
-            The components of the local shape descriptors to compute and return.
-            "012" returns the first three components. "0129" returns the first three and
-            last components if 3D, "0125" if 2D. Components must be in ascending order. 
-            Defaults to all components.
-
-            Component string lookup, where example component : "3D axes", "2D axes"
-
-                mean offset (mean) : "012", "01" 
-                orthogonal covariance (ortho) : "345", "23"
-                diagonal covariance (diag) : "678", "4"
-                size : "9", "5"
-
-            example combinations:
-
-                diag + size : "6789", "45"
-                mean + diag + size : "0126789", "0145"
-                mean + ortho + diag : "012345678", "01234"
-                ortho + diag : "345678", "234"
 
         voxel_size (``tuple`` of ``int``, optional):
 
@@ -79,7 +57,6 @@ def get_local_shape_descriptors(
     '''
     return LsdExtractor(sigma, mode, downsample).get_descriptors(
         segmentation,
-        components,
         voxel_size,
         roi,
         labels)
@@ -120,7 +97,6 @@ class LsdExtractor(object):
     def get_descriptors(
             self,
             segmentation,
-            components=None,
             voxel_size=None,
             roi=None,
             labels=None):
@@ -132,13 +108,6 @@ class LsdExtractor(object):
 
                 A label array to compute the local shape descriptors for.
 
-            components (``string`` of ``int``, optional):
-
-                The components of the local shape descriptors to compute and return.
-                "012" returns the first three components. "0129" returns the first three and
-                last components if 3D, "0125" if 2D. Components must be in ascending order. 
-                Defaults to all components.
-            
             voxel_size (``tuple`` of ``int``, optional):
 
                 The voxel size of ``segmentation``. Defaults to 1.
@@ -156,30 +125,24 @@ class LsdExtractor(object):
         dims = len(segmentation.shape)
 
         if voxel_size is None:
-            voxel_size = Coordinate((1,)*dims)
+            voxel_size = gp.Coordinate((1,)*dims)
         else:
-            voxel_size = Coordinate(voxel_size)
+            voxel_size = gp.Coordinate(voxel_size)
 
         if roi is None:
-            roi = Roi((0,)*dims, segmentation.shape)
+            roi = gp.Roi((0,)*dims, segmentation.shape)
 
         roi_slices = roi.to_slices()
 
         if labels is None:
             labels = np.unique(segmentation[roi_slices])
 
-        # get number of channels
-        if components is None:
-            if dims == 2:
-                self.sigma = self.sigma[0:2]
-                channels = 6
-            elif dims == 3:
-                channels = 10
-            else:
-                raise AssertionError(f"Segmentation shape has {dims} dims.")
-            
+        if dims == 2:
+            self.sigma = self.sigma[0:2]
+            channels = 6
+
         else:
-            channels = len(components)
+            channels = 10
 
         # prepare full-res descriptor volumes for roi
         descriptors = np.zeros(
@@ -251,13 +214,17 @@ class LsdExtractor(object):
 
             logger.debug("Downsampled label mask %s", sub_mask.shape)
 
-            sub_descriptor = np.concatenate(
-                self.__get_stats(
-                    coords,
-                    sub_mask,
-                    sub_sigma_voxel,
-                    sub_roi,
-                    components))
+            sub_count, sub_mean_offset, sub_variance, sub_pearson = self.__get_stats(
+                coords,
+                sub_mask,
+                sub_sigma_voxel,
+                sub_roi)
+
+            sub_descriptor = np.concatenate([
+                sub_mean_offset,
+                sub_variance,
+                sub_pearson,
+                sub_count[None,:]])
 
             logger.debug("Upscaling descriptors...")
             start = time.time()
@@ -290,32 +257,14 @@ class LsdExtractor(object):
             # mean offsets (z,y,x) = [0,1,2]
             # covariance (zz,yy,xx) = [3,4,5]
             # pearsons (zy,zx,yx) = [6,7,8]
-            # size = [9]
+            # size = [10]
 
-            if components is None:
-
-                # mean offsets in [0, 1]
-                descriptors[[0, 1, 2]] = descriptors[[0, 1, 2]]/max_distance[:, None, None, None]*0.5 + 0.5
-                # pearsons in [0, 1]
-                descriptors[[6, 7, 8]] = descriptors[[6, 7, 8]]*0.5 + 0.5
-                # reset background to 0
-                descriptors[[0, 1, 2, 6, 7, 8]] *= (segmentation[roi_slices] != 0)
-
-            else:
-
-                for i,c in enumerate(components):
-                    
-                    c = int(c)
-                    
-                    if c in range(0,3):
-                        descriptors[[i]] = descriptors[[i]]/max_distance[c, None, None, None]*0.5 + 0.5
-                        descriptors[[i]] *= (segmentation[roi_slices] != 0)
-
-                    elif c in range(6,9):
-                        descriptors[[i]] = descriptors[[i]]*0.5 + 0.5
-                        descriptors[[i]] *= (descriptors[roi_slices] != 0)
-
-                    else: pass
+            # mean offsets in [0, 1]
+            descriptors[[0, 1, 2]] = descriptors[[0, 1, 2]]/max_distance[:, None, None, None]*0.5 + 0.5
+            # pearsons in [0, 1]
+            descriptors[[6, 7, 8]] = descriptors[[6, 7, 8]]*0.5 + 0.5
+            # reset background to 0
+            descriptors[[0, 1, 2, 6, 7, 8]] *= (segmentation[roi_slices] != 0)
 
         else:
 
@@ -324,35 +273,19 @@ class LsdExtractor(object):
             # pearsons (yx) = [4]
             # size = [5]
 
-            if components is None:
-
-                # mean offsets in [0, 1]
-                descriptors[[0, 1]] = descriptors[[0, 1]]/max_distance[:, None, None]*0.5 + 0.5
-                # pearsons in [0, 1]
-                descriptors[[4]] = descriptors[[4]]*0.5 + 0.5
-                # reset background to 0
-                descriptors[[0, 1, 4]] *= (segmentation[roi_slices] != 0)
-
-            else:
-
-                for i,c in enumerate(components):
-
-                    c = int(c)
-
-                    if c in range(0,2):
-                        descriptors[[i]] = descriptors[[i]]/max_distance[c, None, None]*0.5 + 0.5
-                        descriptors[[i]] *= (segmentation[roi_slices] != 0)
-
-                    elif c == 4:
-                        descriptors[[i]] = descriptors[[i]]*0.5 + 0.5
-                        descriptors[[i]] *= (segmentation[roi_slices] != 0)
+            # mean offsets in [0, 1]
+            descriptors[[0, 1]] = descriptors[[0, 1]]/max_distance[:, None, None]*0.5 + 0.5
+            # pearsons in [0, 1]
+            descriptors[[4]] = descriptors[[4]]*0.5 + 0.5
+            # reset background to 0
+            descriptors[[0, 1, 4]] *= (segmentation[roi_slices] != 0)
 
         # clip outliers
         np.clip(descriptors, 0.0, 1.0, out=descriptors)
 
         return descriptors
 
-    def __get_stats(self, coords, mask, sigma_voxel, roi, components):
+    def __get_stats(self, coords, mask, sigma_voxel, roi):
 
         # mask for object
         masked_coords = coords*mask
@@ -383,116 +316,72 @@ class LsdExtractor(object):
         mean /= count
         logger.debug("%f seconds", time.time() - start)
 
-        if components is None or ("0" in components or "1" in components):
-            logger.debug("Computing offset of mean position...")
-            start = time.time()
-            mean_offset = mean - coords[(slice(None),) + roi.to_slices()]
+        logger.debug("Computing offset of mean position...")
+        start = time.time()
+        mean_offset = mean - coords[(slice(None),) + roi.to_slices()]
 
         # covariance
-        if components is None or ("3" in components or "4" in components):
-            
-            logger.debug("Computing covariance...")
-            coords_outer = self.__outer_product(masked_coords)
+        logger.debug("Computing covariance...")
+        coords_outer = self.__outer_product(masked_coords)
 
-            # remove duplicate entries in covariance
-            entries = [0,4,8,1,2,5] if count_len == 3 else [0,3,1]
+        # remove duplicate entries in covariance
+        entries = [0,4,8,1,2,5] if count_len == 3 else [0,3,1]
 
-            covariance = np.array([
-                self.__aggregate(coords_outer[d], sigma_voxel, self.mode, roi)
+        covariance = np.array([
+            self.__aggregate(coords_outer[d], sigma_voxel, self.mode, roi)
 
-                # 3d:
-                    # 0 1 2
-                    # 3 4 5
-                    # 6 7 8
+            # 3d:
+                # 0 1 2
+                # 3 4 5
+                # 6 7 8
 
-                # 2d:
-                    # 0 1
-                    # 2 3
+            # 2d:
+                # 0 1
+                # 2 3
 
-                for d in entries])
+            for d in entries])
 
-            covariance /= count
-            covariance -= self.__outer_product(mean)[entries]
+        covariance /= count
+        covariance -= self.__outer_product(mean)[entries]
 
-            logger.debug("%f seconds", time.time() - start)
+        logger.debug("%f seconds", time.time() - start)
 
-            if count_len == 3:
+        if count_len == 3:
 
-                # variances of z, y, x coordinates
-                variance = covariance[[0, 1, 2]]
+            # variances of z, y, x coordinates
+            variance = covariance[[0, 1, 2]]
 
-                # Pearson coefficients of zy, zx, yx
-                pearson = covariance[[3, 4, 5]]
+            # Pearson coefficients of zy, zx, yx
+            pearson = covariance[[3, 4, 5]]
 
-                # normalize Pearson correlation coefficient
-                variance[variance<1e-3] = 1e-3 # numerical stability
-                pearson[0] /= np.sqrt(variance[0]*variance[1])
-                pearson[1] /= np.sqrt(variance[0]*variance[2])
-                pearson[2] /= np.sqrt(variance[1]*variance[2])
+            # normalize Pearson correlation coefficient
+            variance[variance<1e-3] = 1e-3 # numerical stability
+            pearson[0] /= np.sqrt(variance[0]*variance[1])
+            pearson[1] /= np.sqrt(variance[0]*variance[2])
+            pearson[2] /= np.sqrt(variance[1]*variance[2])
 
-                # normalize variances to interval [0, 1]
-                variance[0] /= self.sigma[0]**2
-                variance[1] /= self.sigma[1]**2
-                variance[2] /= self.sigma[2]**2
-
-            else:
-
-                # variances of y, x coordinates
-                variance = covariance[[0, 1]]
-
-                # Pearson coefficients of yx
-                pearson = covariance[[2]]
-
-                # normalize Pearson correlation coefficient
-                variance[variance<1e-3] = 1e-3 # numerical stability
-                pearson /= np.sqrt(variance[0]*variance[1])
-
-                # normalize variances to interval [0, 1]
-                variance[0] /= self.sigma[0]**2
-                variance[1] /= self.sigma[1]**2
-
-        if components is not None:
-
-            ret = tuple()
-
-            for i in components:
-
-                i = int(i)
-
-                if count_len == 3:
-
-                    if i in range(0,3):
-                        ret += (mean_offset[[i]],)
-                    elif i in range(3,6):
-                        ret += (variance[[i-3]],)
-                    elif i in range(6,9):
-                        ret += (pearson,)
-                    elif i == 9:
-                        ret += (count[None,:],)
-                    else:
-                        raise AssertionError(f"3D lsds have components in range(0,10), encountered {i}")
-
-                elif count_len == 2:
-
-                    if i in range(0,2):
-                        ret += (mean_offset[[i]],)
-                    elif i in range(2,4):
-                        ret += (variance[[i-2]],)
-                    elif i == 4:
-                        ret += (pearson,)
-                    elif i == 5:
-                        ret += (count[None,:],)
-                    else:
-                        raise AssertionError(f"2D lsds have components in range(0,6), encountered {i}")
-
-                else:
-                    raise AssertionError(f"Number of dims was found to be {count_len}")
+            # normalize variances to interval [0, 1]
+            variance[0] /= self.sigma[0]**2
+            variance[1] /= self.sigma[1]**2
+            variance[2] /= self.sigma[2]**2
 
         else:
-            ret = (mean_offset,variance,pearson,count[None,:])
 
-        return ret
+            # variances of y, x coordinates
+            variance = covariance[[0, 1]]
 
+            # Pearson coefficients of yx
+            pearson = covariance[[2]]
+
+            # normalize Pearson correlation coefficient
+            variance[variance<1e-3] = 1e-3 # numerical stability
+            pearson /= np.sqrt(variance[0]*variance[1])
+
+            # normalize variances to interval [0, 1]
+            variance[0] /= self.sigma[0]**2
+            variance[1] /= self.sigma[1]**2
+
+        return count, mean_offset, variance, pearson
 
     def __make_sphere(self, radius):
 
@@ -573,3 +462,7 @@ class LsdExtractor(object):
         [l.append(shape[i+1]*f) for i,j in enumerate(shape[1:])]
 
         return view.reshape(l)
+
+
+
+
