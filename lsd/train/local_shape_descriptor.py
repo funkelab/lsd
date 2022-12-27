@@ -34,9 +34,10 @@ def get_local_shape_descriptors(
         components (``string`` of ``int``, optional):
 
             The components of the local shape descriptors to compute and return.
-            "012" returns the first three components. "0129" returns the first three and
-            last components if 3D, "0125" if 2D. Components must be in ascending order.
-            Defaults to all components.
+            "012" returns the first three components. "0129" returns the first
+            three and last components if 3D, "0125" if 2D. Components must be in
+            ascending order. Defaults to all components. Valid component
+            combinations can be seen in tests folder (components test).
 
             Component string lookup, where example component : "3D axes", "2D axes"
 
