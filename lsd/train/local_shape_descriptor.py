@@ -305,7 +305,7 @@ class LsdExtractor(object):
 
                     elif c in range(6, 9):
                         descriptors[[i]] = descriptors[[i]] * 0.5 + 0.5
-                        descriptors[[i]] *= descriptors[roi_slices] != 0
+                        descriptors[[i]] *= segmentation[roi_slices] != 0
 
                     else:
                         pass
