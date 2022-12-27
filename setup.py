@@ -11,13 +11,13 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
         name='lsds',
-        version='0.1.2',
+        version='0.1.3',
         description='Local Shape Descriptors.',
         long_description=long_description,
         long_description_content_type='text/markdown',
         url='https://github.com/funkey/lsd',
         author='Jan Funke',
-        author_email='jfunke@iri.upc.edu',
+        author_email='funkej@janelia.hhmi.org',
         license='MIT',
         packages=find_packages(),
         ext_modules=[
