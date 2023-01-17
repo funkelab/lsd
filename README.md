@@ -3,11 +3,11 @@ Local Shape Descriptors (for Neuron Segmentation)
 
 ![](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/gifs/lsd_particles.gif)
 
-This repository contains code to compute Local Shape Descriptors (LSDs) from an instance segmentation. LSDs can then be used during training as an auxiliary target, which we found to improve boundary prediction and therefore segmentation quality. Read more about it in our [paper](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v2) and/or [blog post](https://localshapedescriptors.github.io/).
+This repository contains code to compute Local Shape Descriptors (LSDs) from an instance segmentation. LSDs can then be used during training as an auxiliary target, which we found to improve boundary prediction and therefore segmentation quality. Read more about it in our [paper](https://www.nature.com/articles/s41592-022-01711-z) and/or [blog post](https://localshapedescriptors.github.io/).
 
 | Paper             |  Blog Post |
 :-------------------------:|:-------------------------:
-[![Paper](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/paper_image_resized.png)](https://www.biorxiv.org/content/10.1101/2021.01.18.427039v2)  |  [![Blog post](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/medium/lsds_header.jpeg)](https://localshapedescriptors.github.io/)
+[![Paper](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/paper_image_resized.png)](https://www.nature.com/articles/s41592-022-01711-z)  |  [![Blog post](https://github.com/LocalShapeDescriptors/LocalShapeDescriptors.github.io/blob/master/assets/img/medium/lsds_header.jpeg)](https://localshapedescriptors.github.io/)
 
 ---
 
@@ -24,14 +24,18 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 **Cite:**
 
 ```bibtex
-@article{sheridan_local_2021,
-	title = {Local Shape Descriptors for Neuron Segmentation},
-	url = {https://www.biorxiv.org/content/10.1101/2021.01.18.427039v1},
-	urldate = {2021-01-20},
-	journal = {bioRxiv},
-	author = {Sheridan, Arlo and Nguyen, Tri and Deb, Diptodip and Lee, Wei-Chung Allen and Saalfeld, Stephan and Turaga, Srinivas and Manor, Uri and Funke, Jan},
-	year = {2021}
+@article{sheridan_local_2022,
+	title = {Local shape descriptors for neuron segmentation},
+	issn = {1548-7091, 1548-7105},
+	url = {https://www.nature.com/articles/s41592-022-01711-z},
+	doi = {10.1038/s41592-022-01711-z},
+	urldate = {2023-01-12},
+	journal = {Nature Methods},
+	author = {Sheridan, Arlo and Nguyen, Tri M. and Deb, Diptodip and Lee, Wei-Chung Allen and Saalfeld, Stephan and Turaga, Srinivas C. and Manor, Uri and Funke, Jan},
+	month = dec,
+	year = {2022},
 }
+
 ```
 
 **Notes:**
