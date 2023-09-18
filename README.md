@@ -40,6 +40,24 @@ This repository contains code to compute Local Shape Descriptors (LSDs) from an 
 
 **Notes:**
 
+* Lsds can be installed via conda/mamba through conda-forge channel, e.g:
+
+```
+conda create -n lsd_env python=3
+conda activate lsd_env
+conda install lsds -c conda-forge
+```
+
+also via pip:
+
+```
+mamba create -n lsd_env python=3
+mamba activate lsd_env
+pip install lsds
+```
+
+* [conda repo](https://github.com/conda-forge/lsds-feedstock), [pypi page](https://pypi.org/project/lsds/0.1.2/)
+
 * Tested on Ubuntu 18.04 with Python 3. 
 
 * This is not production level software and was developed in a pure research environment. Therefore some scripts may not work out of the box. For example, all paper networks were originally written using now deprecated tensorflow/cudnn versions and rely on an outdated singularity container. Because of this, the singularity image will not build from the current recipe - if replicating with the current implementations, please reach out for the singularity container (it is too large to upload here). Alternatively, consider reimplementing networks in pytorch (recommended - see [Training](https://github.com/funkelab/lsd/edit/master/README.md#training)). 
@@ -62,8 +80,7 @@ The following tutorial allows you to run in the browser using google colab. In o
 
 1) `conda create -n lsd_test python=3`
 2) `conda activate lsd_test`
-3) `pip install matplotlib scikit-image gunpowder`
-4) `pip install git+https://github.com/funkelab/lsd.git`
+3) `pip install lsds`
 
 tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/quick_tutorial.ipynb)
 
@@ -81,7 +98,7 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
  
 * If implementing the LSDs in your own training pipeline (i.e pure pytorch/tensorflow), calculate the LSDs on a label array of unique objects and use them as the target for your network (see quick 2d examples above for calculating). 
 
-* The following tutorials show how to set up 2D training/prediction pipelines using [Gunpowder](http://funkey.science/gunpowder/). It is recommended to follow them in order (skip the basic tutorial if familiar with gunpowder). **Note:** Google Colab can sometimes be slow especially due to data I/O. These notebooks will run much faster in a jupyter notebook on a local gpu, but the Colab versions should provide a starting point.
+* The following tutorials show how to set up 2D training/prediction pipelines using [Gunpowder](https://funkelab.github.io/gunpowder/). It is recommended to follow them in order (skip the basic tutorial if familiar with gunpowder). **Note:** Google Colab can sometimes be slow especially due to data I/O. These notebooks will run much faster in a jupyter notebook on a local gpu, but the Colab versions should provide a starting point.
  
     * Basic Gunpowder tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/funkelab/lsd/blob/master/lsd/tutorial/notebooks/basic_gp_tutorial.ipynb)
 
@@ -108,8 +125,10 @@ tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge
 <a name="networks"></a>
 
 ## Example networks & pipelines
+
+* There are example scripts for the zebrafinch networks [here](https://github.com/funkelab/lsd_nm_experiments) using the singularity container and tensorflow networks from the paper.
  
-* There are some example networks and training/prediction pipelines from the fib25 dataset [here](https://github.com/funkelab/lsd/tree/tutorial/lsd/tutorial/example_nets/fib25).
+* There are some example networks and training/prediction pipelines from the fib25 dataset [here](https://github.com/funkelab/lsd/tree/tutorial/lsd/tutorial/example_nets/fib25). These are just a guideline, several dependencies are now deprecated.
  
 ### Training
  
